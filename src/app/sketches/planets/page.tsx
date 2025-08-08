@@ -1,0 +1,543 @@
+"use client";
+import { useEffect, useRef, useState } from 'react';
+import Head from 'next/head';
+import Link from 'next/link';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import {
+    ArrowLeftIcon,
+    PlayIcon,
+    PauseIcon,
+    ArrowPathIcon,
+    Cog6ToothIcon,
+    PhotoIcon
+} from '@heroicons/react/24/outline';
+
+interface PlanetData {
+    name: string;
+    size: number;
+    color: string;
+    distance: number;
+    speed: number;
+    tilt: number;
+    rings?: boolean;
+}
+
+const PlanetarySystemPage = () => {
+    const mountRef = useRef<HTMLDivElement>(null);
+    const sceneRef = useRef<THREE.Scene | null>(null);
+    const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+    const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+    const controlsRef = useRef<OrbitControls | null>(null);
+    const animationIdRef = useRef<number | null>(null);
+
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [showControls, setShowControls] = useState(true);
+    const [controls, setControls] = useState({
+        timeSpeed: 1,
+        planetScale: 1,
+        orbitSpeed: 1,
+        showOrbits: true,
+        showStars: true,
+        cameraAutoRotate: false,
+        sunIntensity: 1
+    });
+
+    // Planet configuration
+    const planetsData: PlanetData[] = [
+        { name: 'Mercury', size: 0.38, color: '#8c7853', distance: 8, speed: 4.15, tilt: 0.1 },
+        { name: 'Venus', size: 0.95, color: '#ffc649', distance: 12, speed: 1.62, tilt: 177.4 },
+        { name: 'Earth', size: 1, color: '#6b93d6', distance: 16, speed: 1, tilt: 23.4 },
+        { name: 'Mars', size: 0.53, color: '#c1440e', distance: 22, speed: 0.53, tilt: 25.2 },
+        { name: 'Jupiter', size: 2.5, color: '#d8ca9d', distance: 35, speed: 0.08, tilt: 3.1 },
+        { name: 'Saturn', size: 2.1, color: '#fad5a5', distance: 50, speed: 0.03, tilt: 26.7, rings: true },
+        { name: 'Uranus', size: 1.6, color: '#4fd0e7', distance: 65, speed: 0.01, tilt: 97.8 },
+        { name: 'Neptune', size: 1.5, color: '#4b70dd', distance: 80, speed: 0.006, tilt: 28.3 }
+    ];
+
+    const planetsRef = useRef<THREE.Group[]>([]);
+    const orbitLinesRef = useRef<THREE.Line[]>([]);
+
+    useEffect(() => {
+        if (!mountRef.current) return;
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000011);
+        sceneRef.current = scene;
+
+        // Camera setup
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            mountRef.current.clientWidth / mountRef.current.clientHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(30, 20, 30);
+        cameraRef.current = camera;
+
+        // Renderer setup
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        rendererRef.current = renderer;
+        mountRef.current.appendChild(renderer.domElement);
+
+        // Controls setup
+        const orbitControls = new OrbitControls(camera, renderer.domElement);
+        orbitControls.enableDamping = true;
+        orbitControls.dampingFactor = 0.05;
+        orbitControls.minDistance = 10;
+        orbitControls.maxDistance = 200;
+        controlsRef.current = orbitControls;
+
+        // Create starfield
+        createStarfield(scene);
+
+        // Create sun
+        const sun = createSun(scene);
+
+        // Create planets
+        createPlanets(scene);
+
+        // Create orbit lines
+        createOrbitLines(scene);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.1);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 2, 300);
+        pointLight.position.set(0, 0, 0);
+        pointLight.castShadow = true;
+        pointLight.shadow.mapSize.width = 2048;
+        pointLight.shadow.mapSize.height = 2048;
+        pointLight.shadow.camera.near = 0.1;
+        pointLight.shadow.camera.far = 300;
+        scene.add(pointLight);
+
+        // Animation loop
+        let time = 0;
+        const animate = () => {
+            if (isPlaying) {
+                time += 0.01 * controls.timeSpeed;
+
+                // Animate planets
+                planetsRef.current.forEach((planetGroup, index) => {
+                    const planet = planetsData[index];
+                    const angle = time * planet.speed * controls.orbitSpeed;
+
+                    planetGroup.position.x = Math.cos(angle) * planet.distance;
+                    planetGroup.position.z = Math.sin(angle) * planet.distance;
+
+                    // Rotate planet on its axis
+                    const planetMesh = planetGroup.children[0] as THREE.Mesh;
+                    if (planetMesh) {
+                        planetMesh.rotation.y += 0.01;
+                    }
+                });
+
+                // Auto-rotate camera if enabled
+                if (controls.cameraAutoRotate) {
+                    orbitControls.autoRotate = true;
+                    orbitControls.autoRotateSpeed = 0.5;
+                } else {
+                    orbitControls.autoRotate = false;
+                }
+            }
+
+            orbitControls.update();
+            renderer.render(scene, camera);
+            animationIdRef.current = requestAnimationFrame(animate);
+        };
+
+        animate();
+
+        // Handle resize
+        const handleResize = () => {
+            if (!mountRef.current) return;
+
+            camera.aspect = mountRef.current.clientWidth / mountRef.current.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            if (animationIdRef.current) {
+                cancelAnimationFrame(animationIdRef.current);
+            }
+            if (mountRef.current && renderer.domElement) {
+                mountRef.current.removeChild(renderer.domElement);
+            }
+            renderer.dispose();
+        };
+    }, []);
+
+    // Update controls effect
+    useEffect(() => {
+        if (sceneRef.current) {
+            // Update orbit line visibility
+            orbitLinesRef.current.forEach(line => {
+                line.visible = controls.showOrbits;
+            });
+
+            // Update planet scales
+            planetsRef.current.forEach((planetGroup, index) => {
+                const planetMesh = planetGroup.children[0] as THREE.Mesh;
+                if (planetMesh) {
+                    const originalScale = planetsData[index].size;
+                    planetMesh.scale.setScalar(originalScale * controls.planetScale);
+                }
+            });
+
+            // Update starfield visibility
+            const starfield = sceneRef.current.getObjectByName('starfield');
+            if (starfield) {
+                starfield.visible = controls.showStars;
+            }
+
+            // Update sun light intensity
+            const pointLight = sceneRef.current.children.find(
+                child => child instanceof THREE.PointLight
+            ) as THREE.PointLight;
+            if (pointLight) {
+                pointLight.intensity = 2 * controls.sunIntensity;
+            }
+        }
+    }, [controls]);
+
+    const createStarfield = (scene: THREE.Scene) => {
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+
+        for (let i = 0; i < 10000; i++) {
+            vertices.push(
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 2000
+            );
+        }
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        const material = new THREE.PointsMaterial({ color: 0xffffff, size: 1 });
+        const starfield = new THREE.Points(geometry, material);
+        starfield.name = 'starfield';
+        scene.add(starfield);
+    };
+
+    const createSun = (scene: THREE.Scene) => {
+        const sunGeometry = new THREE.SphereGeometry(3, 32, 32);
+        const sunMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffff00,
+            // emissive: 0xffff00,
+            // emissiveIntensity: 0.3
+        });
+        const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+        scene.add(sun);
+        return sun;
+    };
+
+    const createPlanets = (scene: THREE.Scene) => {
+        planetsRef.current = [];
+
+        planetsData.forEach((planet, index) => {
+            const planetGroup = new THREE.Group();
+
+            // Planet geometry and material
+            const geometry = new THREE.SphereGeometry(planet.size, 32, 32);
+            const material = new THREE.MeshBasicMaterial({ color: planet.color });
+            const planetMesh = new THREE.Mesh(geometry, material);
+
+            planetMesh.castShadow = true;
+            planetMesh.receiveShadow = true;
+
+            // Add tilt
+            planetMesh.rotation.z = (planet.tilt * Math.PI) / 180;
+
+            planetGroup.add(planetMesh);
+
+            // Add rings for Saturn
+            if (planet.rings) {
+                const ringGeometry = new THREE.RingGeometry(planet.size * 1.2 * 2, planet.size * 2 * 2);
+                const ringMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xcccccc,
+                    side: THREE.DoubleSide
+                });
+                const rings = new THREE.Mesh(ringGeometry, ringMaterial);
+                rings.rotation.x = Math.PI / 2;
+                planetGroup.add(rings);
+            }
+
+            // Position planet
+            planetGroup.position.x = planet.distance;
+
+            scene.add(planetGroup);
+            planetsRef.current.push(planetGroup);
+        });
+    };
+
+    const createOrbitLines = (scene: THREE.Scene) => {
+        orbitLinesRef.current = [];
+
+        planetsData.forEach(planet => {
+            const points = [];
+            for (let i = 0; i <= 64; i++) {
+                const angle = (i / 64) * Math.PI * 2;
+                points.push(new THREE.Vector3(
+                    Math.cos(angle) * planet.distance,
+                    0,
+                    Math.sin(angle) * planet.distance
+                ));
+            }
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({
+                color: 0x555555,
+                transparent: true,
+                opacity: 0.3
+            });
+            const orbitLine = new THREE.Line(geometry, material);
+
+            scene.add(orbitLine);
+            orbitLinesRef.current.push(orbitLine);
+        });
+    };
+
+    const handleControlChange = (key: string, value: number | boolean) => {
+        setControls(prev => ({ ...prev, [key]: value }));
+    };
+
+    const resetCamera = () => {
+        if (cameraRef.current && controlsRef.current) {
+            cameraRef.current.position.set(30, 20, 30);
+            controlsRef.current.reset();
+        }
+    };
+
+    const saveScreenshot = () => {
+        if (rendererRef.current) {
+            const link = document.createElement('a');
+            link.download = `planetary-system-${Date.now()}.png`;
+            link.href = rendererRef.current.domElement.toDataURL();
+            link.click();
+        }
+    };
+
+    return (
+        <>
+            {/* <Head>
+                <title>Planetary System - SketchVault</title>
+                <meta name="description" content="Interactive 3D planetary system with orbiting planets" />
+            </Head> */}
+
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
+                {/* Header */}
+                <header className="relative z-20 px-6 py-4 bg-black/20 backdrop-blur-sm">
+                    <div className="max-w-7xl mx-auto flex justify-between items-center">
+                        <Link href="/gallery" className="flex items-center space-x-2 text-white hover:text-purple-300 transition-colors">
+                            <ArrowLeftIcon className="w-5 h-5" />
+                            <span>Back to Gallery</span>
+                        </Link>
+                        <h1 className="text-xl font-bold text-white">Planetary System</h1>
+                        <div className="w-24"></div> {/* Spacer for centering */}
+                    </div>
+                </header>
+
+                <div className="flex h-full flex-1">
+                    {/* Controls Sidebar */}
+                    <div className={`${showControls ? 'w-80' : 'w-16'} transition-all duration-300 bg-black/40 backdrop-blur-sm border-r border-white/10 flex flex-col`}>
+                        <button
+                            onClick={() => setShowControls(!showControls)}
+                            className="p-4 text-white hover:bg-white/10 transition-colors"
+                        >
+                            <Cog6ToothIcon className="w-6 h-6" />
+                        </button>
+
+                        {showControls && (
+                            <>
+                                <div className="p-4 flex-1 overflow-y-auto">
+                                    <h3 className="text-white font-semibold mb-4">Animation Controls</h3>
+
+                                    <div className="space-y-6">
+                                        <ControlSlider
+                                            label="Time Speed"
+                                            value={controls.timeSpeed}
+                                            min={0}
+                                            max={5}
+                                            step={0.1}
+                                            onChange={(value) => handleControlChange('timeSpeed', value)}
+                                        />
+
+                                        <ControlSlider
+                                            label="Planet Scale"
+                                            value={controls.planetScale}
+                                            min={0.5}
+                                            max={3}
+                                            step={0.1}
+                                            onChange={(value) => handleControlChange('planetScale', value)}
+                                        />
+
+                                        <ControlSlider
+                                            label="Orbit Speed"
+                                            value={controls.orbitSpeed}
+                                            min={0.1}
+                                            max={3}
+                                            step={0.1}
+                                            onChange={(value) => handleControlChange('orbitSpeed', value)}
+                                        />
+
+                                        <ControlSlider
+                                            label="Sun Intensity"
+                                            value={controls.sunIntensity}
+                                            min={0.1}
+                                            max={2}
+                                            step={0.1}
+                                            onChange={(value) => handleControlChange('sunIntensity', value)}
+                                        />
+                                    </div>
+
+                                    <h3 className="text-white font-semibold mb-4 mt-8">Display Options</h3>
+
+                                    <div className="space-y-4">
+                                        <ControlToggle
+                                            label="Show Orbits"
+                                            value={controls.showOrbits}
+                                            onChange={(value) => handleControlChange('showOrbits', value)}
+                                        />
+
+                                        <ControlToggle
+                                            label="Show Stars"
+                                            value={controls.showStars}
+                                            onChange={(value) => handleControlChange('showStars', value)}
+                                        />
+
+                                        <ControlToggle
+                                            label="Auto Rotate Camera"
+                                            value={controls.cameraAutoRotate}
+                                            onChange={(value) => handleControlChange('cameraAutoRotate', value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="p-4 border-t border-white/10 space-y-3">
+                                    <button
+                                        onClick={resetCamera}
+                                        className="w-full flex items-center justify-center gap-2 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
+                                    >
+                                        <ArrowPathIcon className="w-4 h-4" />
+                                        Reset Camera
+                                    </button>
+
+                                    <button
+                                        onClick={saveScreenshot}
+                                        className="w-full flex items-center justify-center gap-2 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
+                                    >
+                                        <PhotoIcon className="w-4 h-4" />
+                                        Save Screenshot
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* 3D Scene */}
+                    <div className="flex-1 relative">
+                        <div ref={mountRef} className="w-full h-full" />
+
+                        {/* Play/Pause Button */}
+                        <div className="absolute top-4 right-4">
+                            <button
+                                onClick={() => setIsPlaying(!isPlaying)}
+                                className={`p-3 rounded-full backdrop-blur-sm transition-all duration-300 ${isPlaying
+                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                                    : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                                    }`}
+                            >
+                                {isPlaying ? (
+                                    <PauseIcon className="w-6 h-6" />
+                                ) : (
+                                    <PlayIcon className="w-6 h-6" />
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Info Panel */}
+                        <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white max-w-xs">
+                            <h3 className="font-semibold mb-2">Solar System</h3>
+                            <p className="text-sm text-gray-300 mb-2">
+                                Interactive 3D model with {planetsData.length} planets orbiting the sun.
+                            </p>
+                            <p className="text-xs text-gray-400">
+                                Use mouse to orbit, zoom, and pan the camera.
+                                Adjust controls in the sidebar.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+};
+
+// Control Components
+const ControlSlider = ({
+    label,
+    value,
+    min,
+    max,
+    step,
+    onChange
+}: {
+    label: string;
+    value: number;
+    min: number;
+    max: number;
+    step: number;
+    onChange: (value: number) => void;
+}) => (
+    <div>
+        <label className="block text-gray-300 text-sm font-medium mb-2">
+            {label}: {value.toFixed(1)}
+        </label>
+        <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(e) => onChange(parseFloat(e.target.value))}
+            className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+        />
+    </div>
+);
+
+const ControlToggle = ({
+    label,
+    value,
+    onChange
+}: {
+    label: string;
+    value: boolean;
+    onChange: (value: boolean) => void;
+}) => (
+    <div className="flex items-center justify-between">
+        <label className="text-gray-300 text-sm font-medium">{label}</label>
+        <button
+            onClick={() => onChange(!value)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? 'bg-gradient-to-r from-purple-500 to-cyan-500' : 'bg-white/20'
+                }`}
+        >
+            <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${value ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+            />
+        </button>
+    </div>
+);
+
+export default PlanetarySystemPage;
