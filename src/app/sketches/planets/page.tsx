@@ -1,6 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 import { useEffect, useRef, useState } from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -12,6 +12,9 @@ import {
     Cog6ToothIcon,
     PhotoIcon
 } from '@heroicons/react/24/outline';
+
+import ControlSlider from '@/components/ControlSlider';
+import ControlToggle from '@/components/ControlToggle';
 
 interface PlanetData {
     name: string;
@@ -30,6 +33,7 @@ const PlanetarySystemPage = () => {
     const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
     const controlsRef = useRef<OrbitControls | null>(null);
     const animationIdRef = useRef<number | null>(null);
+    const timeRef = useRef<number>(0);
 
     const [isPlaying, setIsPlaying] = useState(true);
     const [showControls, setShowControls] = useState(true);
@@ -97,7 +101,7 @@ const PlanetarySystemPage = () => {
         createStarfield(scene);
 
         // Create sun
-        const sun = createSun(scene);
+        createSun(scene);
 
         // Create planets
         createPlanets(scene);
@@ -117,43 +121,6 @@ const PlanetarySystemPage = () => {
         pointLight.shadow.camera.near = 0.1;
         pointLight.shadow.camera.far = 300;
         scene.add(pointLight);
-
-        // Animation loop
-        let time = 0;
-        const animate = () => {
-            if (isPlaying) {
-                time += 0.01 * controls.timeSpeed;
-
-                // Animate planets
-                planetsRef.current.forEach((planetGroup, index) => {
-                    const planet = planetsData[index];
-                    const angle = time * planet.speed * controls.orbitSpeed;
-
-                    planetGroup.position.x = Math.cos(angle) * planet.distance;
-                    planetGroup.position.z = Math.sin(angle) * planet.distance;
-
-                    // Rotate planet on its axis
-                    const planetMesh = planetGroup.children[0] as THREE.Mesh;
-                    if (planetMesh) {
-                        planetMesh.rotation.y += 0.01;
-                    }
-                });
-
-                // Auto-rotate camera if enabled
-                if (controls.cameraAutoRotate) {
-                    orbitControls.autoRotate = true;
-                    orbitControls.autoRotateSpeed = 0.5;
-                } else {
-                    orbitControls.autoRotate = false;
-                }
-            }
-
-            orbitControls.update();
-            renderer.render(scene, camera);
-            animationIdRef.current = requestAnimationFrame(animate);
-        };
-
-        animate();
 
         // Handle resize
         const handleResize = () => {
@@ -177,6 +144,52 @@ const PlanetarySystemPage = () => {
             renderer.dispose();
         };
     }, []);
+
+    useEffect(() => {
+        // let time = 0;
+        const animate = () => {
+            if (isPlaying) {
+                timeRef.current += 0.01 * controls.orbitSpeed;
+
+                // Animate planets
+                planetsRef.current.forEach((planetGroup, index) => {
+                    const planet = planetsData[index];
+                    const angle = timeRef.current * planet.speed;
+
+                    planetGroup.position.x = Math.cos(angle) * planet.distance;
+                    planetGroup.position.z = Math.sin(angle) * planet.distance;
+
+                    // Rotate planet on its axis
+                    const planetMesh = planetGroup.children[0] as THREE.Mesh;
+                    if (planetMesh) {
+                        planetMesh.rotation.y += 0.01;
+                    }
+                });
+
+                if (controlsRef.current) {
+                    if (controls.cameraAutoRotate) {
+                        controlsRef.current.autoRotate = true;
+                        controlsRef.current.autoRotateSpeed = 0.5;
+                    } else {
+                        controlsRef.current.autoRotate = false;
+                    }
+
+                    controlsRef.current.update();
+                }
+            }
+
+            
+            if (sceneRef.current && cameraRef.current && rendererRef.current){
+                rendererRef.current.render(sceneRef.current, cameraRef.current);
+            }
+            animationIdRef.current = requestAnimationFrame(animate);
+        };
+
+        if (animationIdRef.current !== null) {
+            cancelAnimationFrame(animationIdRef.current);
+        }
+        animate();
+    }, [controls.cameraAutoRotate, controls.orbitSpeed, controls.timeSpeed, isPlaying]);
 
     // Update controls effect
     useEffect(() => {
@@ -209,7 +222,7 @@ const PlanetarySystemPage = () => {
                 pointLight.intensity = 2 * controls.sunIntensity;
             }
         }
-    }, [controls]);
+    }, [controls.planetScale, controls.showOrbits, controls.showStars, controls.sunIntensity]);
 
     const createStarfield = (scene: THREE.Scene) => {
         const geometry = new THREE.BufferGeometry();
@@ -234,8 +247,6 @@ const PlanetarySystemPage = () => {
         const sunGeometry = new THREE.SphereGeometry(3, 32, 32);
         const sunMaterial = new THREE.MeshBasicMaterial({
             color: 0xffff00,
-            // emissive: 0xffff00,
-            // emissiveIntensity: 0.3
         });
         const sun = new THREE.Mesh(sunGeometry, sunMaterial);
         scene.add(sun);
@@ -245,7 +256,7 @@ const PlanetarySystemPage = () => {
     const createPlanets = (scene: THREE.Scene) => {
         planetsRef.current = [];
 
-        planetsData.forEach((planet, index) => {
+        planetsData.forEach((planet) => {
             const planetGroup = new THREE.Group();
 
             // Planet geometry and material
@@ -320,21 +331,17 @@ const PlanetarySystemPage = () => {
     };
 
     const saveScreenshot = () => {
-        if (rendererRef.current) {
+        const canvas = document.querySelector('canvas');
+        if (canvas) {
             const link = document.createElement('a');
             link.download = `planetary-system-${Date.now()}.png`;
-            link.href = rendererRef.current.domElement.toDataURL();
+            link.href = canvas.toDataURL();
             link.click();
         }
     };
 
     return (
         <>
-            {/* <Head>
-                <title>Planetary System - SketchVault</title>
-                <meta name="description" content="Interactive 3D planetary system with orbiting planets" />
-            </Head> */}
-
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
                 {/* Header */}
                 <header className="relative z-20 px-6 py-4 bg-black/20 backdrop-blur-sm">
@@ -365,15 +372,6 @@ const PlanetarySystemPage = () => {
 
                                     <div className="space-y-6">
                                         <ControlSlider
-                                            label="Time Speed"
-                                            value={controls.timeSpeed}
-                                            min={0}
-                                            max={5}
-                                            step={0.1}
-                                            onChange={(value) => handleControlChange('timeSpeed', value)}
-                                        />
-
-                                        <ControlSlider
                                             label="Planet Scale"
                                             value={controls.planetScale}
                                             min={0.5}
@@ -386,18 +384,9 @@ const PlanetarySystemPage = () => {
                                             label="Orbit Speed"
                                             value={controls.orbitSpeed}
                                             min={0.1}
-                                            max={3}
+                                            max={5}
                                             step={0.1}
                                             onChange={(value) => handleControlChange('orbitSpeed', value)}
-                                        />
-
-                                        <ControlSlider
-                                            label="Sun Intensity"
-                                            value={controls.sunIntensity}
-                                            min={0.1}
-                                            max={2}
-                                            step={0.1}
-                                            onChange={(value) => handleControlChange('sunIntensity', value)}
                                         />
                                     </div>
 
@@ -414,12 +403,6 @@ const PlanetarySystemPage = () => {
                                             label="Show Stars"
                                             value={controls.showStars}
                                             onChange={(value) => handleControlChange('showStars', value)}
-                                        />
-
-                                        <ControlToggle
-                                            label="Auto Rotate Camera"
-                                            value={controls.cameraAutoRotate}
-                                            onChange={(value) => handleControlChange('cameraAutoRotate', value)}
                                         />
                                     </div>
                                 </div>
@@ -483,61 +466,5 @@ const PlanetarySystemPage = () => {
         </>
     );
 };
-
-// Control Components
-const ControlSlider = ({
-    label,
-    value,
-    min,
-    max,
-    step,
-    onChange
-}: {
-    label: string;
-    value: number;
-    min: number;
-    max: number;
-    step: number;
-    onChange: (value: number) => void;
-}) => (
-    <div>
-        <label className="block text-gray-300 text-sm font-medium mb-2">
-            {label}: {value.toFixed(1)}
-        </label>
-        <input
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            onChange={(e) => onChange(parseFloat(e.target.value))}
-            className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
-        />
-    </div>
-);
-
-const ControlToggle = ({
-    label,
-    value,
-    onChange
-}: {
-    label: string;
-    value: boolean;
-    onChange: (value: boolean) => void;
-}) => (
-    <div className="flex items-center justify-between">
-        <label className="text-gray-300 text-sm font-medium">{label}</label>
-        <button
-            onClick={() => onChange(!value)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? 'bg-gradient-to-r from-purple-500 to-cyan-500' : 'bg-white/20'
-                }`}
-        >
-            <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${value ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-            />
-        </button>
-    </div>
-);
 
 export default PlanetarySystemPage;

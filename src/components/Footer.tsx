@@ -3,11 +3,6 @@ import Link from "next/link";
 export default function Footer() {
     return (
         <footer className="bg-slate-900  text-white py-12 relative overflow-hidden">
-            {/* <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-10"></div>
-                <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-cyan-500 rounded-full mix-blend-multiply filter blur-xl opacity-10"></div>
-            </div> */}
-
             <div className="container mx-auto px-6 relative z-10">
                 <div className="flex flex-col md:flex-row justify-between items-center">
                     <div className="mb-6 md:mb-0">
@@ -18,7 +13,6 @@ export default function Footer() {
                             </p>
                         </div>
                         <p className="text-gray-300 text-lg">Software Engineer</p>
-                        {/* <p className="text-gray-400 text-sm mt-1">Creating interactive experiences with code</p> */}
                     </div>
 
                     <div className="flex space-x-6">

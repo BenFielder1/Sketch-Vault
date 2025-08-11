@@ -1,7 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useState, useEffect, useRef } from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
 import {
     PlayIcon,
@@ -9,20 +9,19 @@ import {
     ArrowPathIcon,
     Cog6ToothIcon,
     PhotoIcon,
-    VideoCameraIcon,
     PaintBrushIcon,
     SparklesIcon,
-    CubeIcon,
-    SunIcon,
-    MoonIcon
+    CubeIcon
 } from '@heroicons/react/24/outline';
 
 const LiveSketchPage = () => {
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isStarted, setIsStarted] = useState(false);
     const [selectedSketch, setSelectedSketch] = useState('particles');
     const [showControls, setShowControls] = useState(true);
-    const [isRecording, setIsRecording] = useState(false);
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const timeRef = useRef<number>(0);
 
     // Sketch configurations
     const sketches = [
@@ -84,7 +83,6 @@ const LiveSketchPage = () => {
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
 
-            // Set canvas size
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
 
@@ -114,42 +112,50 @@ const LiveSketchPage = () => {
     }, [isPlaying, selectedSketch, controls]);
 
     const renderSketch = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-        const time = Date.now() * 0.001;
+        // const time = Date.now() * 0.001;
+
+        // timeRef.current += 1; // Increment time for animation
+        
         const sketchControls = controls[selectedSketch];
 
         switch (selectedSketch) {
             case 'particles':
-                renderParticles(ctx, width, height, time, sketchControls);
+                renderParticles(ctx, width, height, sketchControls);
                 break;
             case 'waves':
-                renderWaves(ctx, width, height, time, sketchControls);
+                renderWaves(ctx, width, height, sketchControls);
                 break;
             case 'fractal':
-                renderFractal(ctx, width, height, time, sketchControls);
+                renderFractal(ctx, width, height, sketchControls);
                 break;
         }
     };
 
-    const renderParticles = (ctx: CanvasRenderingContext2D, width: number, height: number, time: number, controls: any) => {
+    const renderParticles = (ctx: CanvasRenderingContext2D, width: number, height: number, controls: any) => {
         ctx.fillStyle = '#8b5cf6';
+
+        timeRef.current += controls.speed * 0.01;
+
         for (let i = 0; i < controls.particleCount; i++) {
-            const x = (Math.sin(time * controls.speed + i) * width / 4) + width / 2;
-            const y = (Math.cos(time * controls.speed * 0.7 + i * 0.5) * height / 4) + height / 2;
+            const x = (Math.sin(timeRef.current * controls.speed + i) * width / 4) + width / 2;
+            const y = (Math.cos(timeRef.current * controls.speed * 0.7 + i * 0.5) * height / 4) + height / 2;
             ctx.beginPath();
             ctx.arc(x, y, controls.size, 0, Math.PI * 2);
             ctx.fill();
         }
     };
 
-    const renderWaves = (ctx: CanvasRenderingContext2D, width: number, height: number, time: number, controls: any) => {
+    const renderWaves = (ctx: CanvasRenderingContext2D, width: number, height: number, controls: any) => {
         ctx.strokeStyle = '#06b6d4';
         ctx.lineWidth = 2;
         ctx.beginPath();
 
+        timeRef.current += 0.01;
+
         for (let x = 0; x < width; x += 2) {
             let y = height / 2;
             for (let h = 1; h <= controls.harmonics; h++) {
-                y += Math.sin((x * controls.frequency * h) / 50 + time + controls.phase) * (controls.amplitude / h);
+                y += Math.sin((x * controls.frequency * h) / 50 + timeRef.current + controls.phase) * (controls.amplitude / h);
             }
             if (x === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
@@ -159,9 +165,11 @@ const LiveSketchPage = () => {
 
     // Replace the renderFractal function in pages/live-sketch.tsx
 
-    const renderFractal = (ctx: CanvasRenderingContext2D, width: number, height: number, time: number, controls: any) => {
+    const renderFractal = (ctx: CanvasRenderingContext2D, width: number, height: number, controls: any) => {
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 2;
+
+        timeRef.current += 0.01;
 
         // Use iterative approach instead of recursion to prevent stack overflow
         interface Branch {
@@ -212,7 +220,7 @@ const LiveSketchPage = () => {
 
                         for (let i = 0; i < numBranches; i++) {
                             // Add some randomness based on time for organic feel
-                            const timeOffset = time * 0.1 + branch.generation * 0.3;
+                            const timeOffset = timeRef.current * 0.1 + branch.generation * 0.3;
                             const angleVariation = Math.sin(timeOffset + i) * 0.1;
 
                             const branchAngle = angle +
@@ -269,18 +277,8 @@ const LiveSketchPage = () => {
         }
     };
 
-    const toggleRecording = () => {
-        setIsRecording(!isRecording);
-        // In a real implementation, you would start/stop screen recording here
-    };
-
     return (
         <>
-            {/* <Head>
-                <title>Live Sketch - SketchVault</title>
-                <meta name="description" content="Create and interact with live generative art in real-time" />
-            </Head> */}
-
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
                 {/* Header */}
                 <header className="relative z-20 px-6 py-4 bg-black/20 backdrop-blur-sm">
@@ -323,7 +321,8 @@ const LiveSketchPage = () => {
                                         {sketches.map((sketch) => (
                                             <button
                                                 key={sketch.id}
-                                                onClick={() => setSelectedSketch(sketch.id)}
+                                                onClick={() => setSelectedSketch(sketch.id)
+                                                }
                                                 className={`w-full p-3 rounded-lg text-left transition-all duration-200 flex items-center gap-3 ${selectedSketch === sketch.id
                                                     ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white'
                                                     : 'bg-white/10 text-gray-300 hover:bg-white/20'
@@ -382,16 +381,6 @@ const LiveSketchPage = () => {
                                         <PhotoIcon className="w-4 h-4" />
                                         Save Image
                                     </button>
-                                    <button
-                                        onClick={toggleRecording}
-                                        className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg transition-colors ${isRecording
-                                            ? 'bg-red-500 text-white hover:bg-red-600'
-                                            : 'bg-white/10 text-white hover:bg-white/20'
-                                            }`}
-                                    >
-                                        <VideoCameraIcon className="w-4 h-4" />
-                                        {isRecording ? 'Stop Recording' : 'Record Video'}
-                                    </button>
                                 </div>
                             </>
                         )}
@@ -424,7 +413,7 @@ const LiveSketchPage = () => {
                         </div>
 
                         {/* Info Overlay */}
-                        {!isPlaying && (
+                        {!isStarted && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                                 <div className="text-center text-white">
                                     <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center">
@@ -436,7 +425,7 @@ const LiveSketchPage = () => {
                                     </p>
                                     <div className="flex gap-4 justify-center">
                                         <button
-                                            onClick={() => setIsPlaying(true)}
+                                            onClick={() => {setIsPlaying(true); setIsStarted(true)}}
                                             className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
                                         >
                                             Start Sketching
@@ -450,7 +439,7 @@ const LiveSketchPage = () => {
                         {isPlaying && (
                             <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-3 text-white text-sm">
                                 <div>Sketch: {currentSketch?.name}</div>
-                                <div>Status: {isRecording ? 'Recording' : 'Live'}</div>
+                                <div>Status: Live</div>
                             </div>
                         )}
                     </div>

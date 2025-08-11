@@ -12,6 +12,7 @@
     "@heroicons/react": "^2.2.0",
     "@types/three": "^0.179.0",
     "next": "15.4.6",
+    "p5": "^2.0.4",
     "pathfinding": "^0.4.18",
     "react": "19.1.0",
     "react-dom": "19.1.0",

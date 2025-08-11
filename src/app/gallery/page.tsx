@@ -1,18 +1,14 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client"
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-    FunnelIcon,
     MagnifyingGlassIcon,
     PlayIcon,
-    EyeIcon,
-    HeartIcon,
     ShareIcon,
     XMarkIcon
 } from '@heroicons/react/24/outline';
-import { HeartIcon as HeartSolidIcon, PlayIcon as PlayIconSolid } from '@heroicons/react/24/solid';
 
 interface Sketch {
     id: number;
@@ -44,7 +40,7 @@ const GalleryPage = () => {
             description: "Interactive 3D model of the solar system with 8 planets orbiting the sun.",
             types: ["interactive", "3d"],
             tags: ["space", "interactive", "three.js", "planets", "orbit"],
-            thumbnail: "/sketches/planets2.png",
+            thumbnail: "/sketches/planets.png",
             link: "/sketches/planets",
             isLiked: false,
             likes: 124,
@@ -274,7 +270,6 @@ const GalleryPage = () => {
 // Sketch Card Component
 const SketchCard = ({
     sketch,
-    onLike,
     onView,
     delay
 }: {
@@ -307,10 +302,6 @@ const SketchCard = ({
                     />
                 </div>
 
-                {/* <div className="absolute inset-0 flex items-center justify-center">
-                    <PlayIconSolid className="w-16 h-16 text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110" />
-                </div> */}
-
                 {/* Type Badge */}
                 <div className="absolute top-4 left-4">
                     {sketch.types.map((type) => (
@@ -325,16 +316,6 @@ const SketchCard = ({
 
                 {/* Action Buttons */}
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                    {/* <button
-                        onClick={(e) => { e.stopPropagation(); onLike(); }}
-                        className="p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
-                    >
-                        {sketch.isLiked ? (
-                            <HeartSolidIcon className="w-4 h-4 text-red-500" />
-                        ) : (
-                            <HeartIcon className="w-4 h-4 text-white" />
-                        )}
-                    </button> */}
                     <button className="p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors">
                         <ShareIcon className="w-4 h-4 text-white" />
                     </button>
@@ -375,7 +356,6 @@ const SketchCard = ({
 const SketchModal = ({
     sketch,
     onClose,
-    onLike
 }: {
     sketch: Sketch;
     onClose: () => void;
