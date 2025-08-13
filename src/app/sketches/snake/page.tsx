@@ -144,9 +144,6 @@ const SnakeAIPage = () => {
                         gameState.usefulGrid
                     );
                     gameState.taken = false;
-                    // if (gameState.path.length > 2) {
-                        // gameState.taken = false;
-                    // }
                 }
             }
             gameState.appleCaught = false;
