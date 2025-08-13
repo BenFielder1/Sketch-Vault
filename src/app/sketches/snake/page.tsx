@@ -1,9 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import dynamic from "next/dynamic";
 import {
-    ArrowLeftIcon,
     PlayIcon,
     PauseIcon,
     ArrowPathIcon,
@@ -16,6 +14,7 @@ import p5 from 'p5';
 
 import ControlSlider from '@/components/ControlSlider';
 import ControlToggle from '@/components/ControlToggle';
+import SketchHeader from '@/components/SketchHeader';
 
 const Sketch = dynamic(() => import("react-p5").then(mod => mod.default), {
     ssr: false
@@ -432,17 +431,7 @@ const SnakeAIPage = () => {
     return (
         <>
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
-                {/* Header */}
-                <header className="relative z-20 px-6 py-4 bg-black/20 backdrop-blur-sm">
-                    <div className="max-w-7xl mx-auto flex justify-between items-center">
-                                                <Link href="/gallery" className="flex items-center space-x-2 text-white hover:text-purple-300 transition-colors">
-                            <ArrowLeftIcon className="w-5 h-5" />
-                            <span>Back to Gallery</span>
-                        </Link>
-                        <h1 className="text-xl font-bold text-white">Snake AI</h1>
-                        <div className="w-24"></div>
-                    </div>
-                </header>
+                <SketchHeader />
 
                 <div className="flex h-full flex-1">
                     {/* Controls Sidebar */}

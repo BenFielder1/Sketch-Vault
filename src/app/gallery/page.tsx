@@ -1,6 +1,5 @@
 "use client"
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import {
     MagnifyingGlassIcon,
@@ -11,6 +10,7 @@ import {
 
 import { Sketch } from '@/types/Sketch';
 import { sketches as sketchData } from '@/data/sketches';
+import Header from '@/components/Header';
 
 const GalleryPage = () => {
     const [sketches, setSketches] = useState<Sketch[]>([]);
@@ -66,26 +66,7 @@ const GalleryPage = () => {
     return (
         <>
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-                {/* Header */}
-                <header className="relative z-10 px-6 py-8">
-                    <div className="max-w-7xl mx-auto flex justify-between items-center">
-                        <Link href="/" className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-lg"></div>
-                            <span className="text-white font-bold text-xl">SketchVault</span>
-                        </Link>
-                        <nav className="hidden md:flex items-center space-x-8">
-                            <Link href="/" className="text-gray-300 hover:text-white transition-colors">
-                                Home
-                            </Link>
-                            <Link href="/gallery" className="text-white font-semibold">
-                                Gallery
-                            </Link>
-                            <Link href="/live-sketch" className="text-gray-300 hover:text-white transition-colors">
-                                Live Sketch
-                            </Link>
-                        </nav>
-                    </div>
-                </header>
+                <Header />
 
                 {/* Main Content */}
                 <main className="relative z-10 px-6 pb-20">

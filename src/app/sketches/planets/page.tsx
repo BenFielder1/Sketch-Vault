@@ -1,11 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
-    ArrowLeftIcon,
     PlayIcon,
     PauseIcon,
     ArrowPathIcon,
@@ -15,6 +13,7 @@ import {
 
 import ControlSlider from '@/components/ControlSlider';
 import ControlToggle from '@/components/ControlToggle';
+import SketchHeader from '@/components/SketchHeader';
 
 interface PlanetData {
     name: string;
@@ -343,17 +342,7 @@ const PlanetarySystemPage = () => {
     return (
         <>
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
-                {/* Header */}
-                <header className="relative z-20 px-6 py-4 bg-black/20 backdrop-blur-sm">
-                    <div className="max-w-7xl mx-auto flex justify-between items-center">
-                        <Link href="/gallery" className="flex items-center space-x-2 text-white hover:text-purple-300 transition-colors">
-                            <ArrowLeftIcon className="w-5 h-5" />
-                            <span>Back to Gallery</span>
-                        </Link>
-                        <h1 className="text-xl font-bold text-white">Planetary System</h1>
-                        <div className="w-24"></div> {/* Spacer for centering */}
-                    </div>
-                </header>
+                <SketchHeader />
 
                 <div className="flex h-full flex-1">
                     {/* Controls Sidebar */}

@@ -5,6 +5,7 @@ import { ChevronRightIcon, SparklesIcon, CubeIcon, PaintBrushIcon } from '@heroi
 
 import Footer from '@/components/Footer';
 import FeatureCard from '@/components/FeatureCard';
+import Header from '@/components/Header';
 
 const HomePage = () => {
     const [isLoaded, setIsLoaded] = useState(false);
@@ -16,27 +17,7 @@ const HomePage = () => {
     return (
         <>
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-
-                {/* Navigation */}
-                <header className="relative z-10 px-6 py-8">
-                    <div className="max-w-7xl mx-auto flex justify-between items-center">
-                        <Link href="/" className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-lg"></div>
-                            <span className="text-white font-bold text-xl">SketchVault</span>
-                        </Link>
-                        <nav className="hidden md:flex items-center space-x-8">
-                            <Link href="/" className="text-white font-semibold">
-                                Home
-                            </Link>
-                            <Link href="/gallery" className="text-gray-300 hover:text-white transition-colors">
-                                Gallery
-                            </Link>
-                            <Link href="/live-sketch" className="text-gray-300 hover:text-white transition-colors">
-                                Live Sketch
-                            </Link>
-                        </nav>
-                    </div>
-                </header>
+                <Header />
 
                 {/* Hero Section */}
                 <main className="relative z-10 px-6 py-20">
@@ -92,8 +73,9 @@ const HomePage = () => {
                     </div>
                 </main>
 
-                <Footer />
+                
             </div>
+            <Footer />
         </>
     );
 };
