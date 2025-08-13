@@ -1,6 +1,5 @@
 "use client"
 import { useState, useEffect } from 'react';
-// import Head from 'next/head';
 import Link from 'next/link';
 import { ChevronRightIcon, SparklesIcon, CubeIcon, PaintBrushIcon } from '@heroicons/react/24/outline';
 
@@ -16,13 +15,6 @@ const HomePage = () => {
 
     return (
         <>
-            {/* <Head>
-                <title>SketchVault - Interactive Digital Art Gallery</title>
-                <meta name="description" content="Explore beautiful digital sketches and interactive art created with Three.js and p5.js" />
-                <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <link rel="icon" href="/favicon.ico" />
-            </Head> */}
-
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
 
                 {/* Navigation */}

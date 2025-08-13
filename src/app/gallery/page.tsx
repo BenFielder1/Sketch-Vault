@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client"
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -10,19 +9,8 @@ import {
     XMarkIcon
 } from '@heroicons/react/24/outline';
 
-interface Sketch {
-    id: number;
-    title: string;
-    description: string;
-    types: ('3d' | 'generative' | 'interactive' | "2d")[];
-    tags: string[];
-    thumbnail: string;
-    link: string;
-    isLiked: boolean;
-    likes: number;
-    views: number;
-    createdAt: string;
-}
+import { Sketch } from '@/types/Sketch';
+import { sketches as sketchData } from '@/data/sketches';
 
 const GalleryPage = () => {
     const [sketches, setSketches] = useState<Sketch[]>([]);
@@ -32,91 +20,9 @@ const GalleryPage = () => {
     const [selectedSketch, setSelectedSketch] = useState<Sketch | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Mock data - replace with your actual data
-    const mockSketches: Sketch[] = [
-        {
-            id: 1,
-            title: "Planetary System",
-            description: "Interactive 3D model of the solar system with 8 planets orbiting the sun.",
-            types: ["interactive", "3d"],
-            tags: ["space", "interactive", "three.js", "planets", "orbit"],
-            thumbnail: "/sketches/planets.png",
-            link: "/sketches/planets",
-            isLiked: false,
-            likes: 124,
-            views: 1502,
-            createdAt: "2024-01-15"
-        },
-        {
-            id: 2,
-            title: "Snake AI",
-            description: "Uses an A* routing algorithm to find the shortest path to the food.",
-            types: ["2d"],
-            tags: ["p5.js", "AI", "snake", "routing", "game"],
-            thumbnail: "/sketches/snake.png",
-            link: "/sketches/snake",
-            isLiked: true,
-            likes: 89,
-            views: 934,
-            createdAt: "2024-01-12"
-        },
-        // {
-        //     id: 3,
-        //     title: "Fractal Explorer",
-        //     description: "Navigate through infinite fractal patterns with real-time zooming and color transformations.",
-        //     types: ["generative"],
-        //     tags: ["fractals", "generative", "math", "infinite"],
-        //     thumbnail: "/sketches/planets.png",
-        //     link: "",
-        //     isLiked: false,
-        //     likes: 156,
-        //     views: 2103,
-        //     createdAt: "2024-01-10"
-        // },
-        // {
-        //     id: 4,
-        //     title: "Fluid Dynamics",
-        //     description: "Real-time fluid simulation with customizable parameters and interactive obstacles.",
-        //     types: ["interactive"],
-        //     tags: ["fluid", "physics", "simulation", "interactive"],
-        //     thumbnail: "/sketches/planets.png",
-        //     link: "",
-        //     isLiked: false,
-        //     likes: 203,
-        //     views: 1834,
-        //     createdAt: "2024-01-08"
-        // },
-        // {
-        //     id: 5,
-        //     title: "Crystal Growth",
-        //     description: "Watch crystals grow in 3D space with physically-based rendering and organic patterns.",
-        //     types: ["3d"],
-        //     tags: ["3d", "growth", "organic", "crystals"],
-        //     thumbnail: "/sketches/planets.png",
-        //     link: "",
-        //     isLiked: true,
-        //     likes: 178,
-        //     views: 1456,
-        //     createdAt: "2024-01-05"
-        // },
-        // {
-        //     id: 6,
-        //     title: "Neural Network Visualization",
-        //     description: "Interactive visualization of neural network training with real-time weight updates.",
-        //     types: ["generative"],
-        //     tags: ["ai", "neural", "visualization", "data"],
-        //     thumbnail: "/sketches/planets.png",
-        //     link: "",
-        //     isLiked: false,
-        //     likes: 267,
-        //     views: 3102,
-        //     createdAt: "2024-01-03"
-        // }
-    ];
-
     useEffect(() => {
-        setSketches(mockSketches);
-        setFilteredSketches(mockSketches);
+        setSketches(sketchData);
+        setFilteredSketches(sketchData);
         setIsLoaded(true);
     }, []);
 
@@ -159,11 +65,6 @@ const GalleryPage = () => {
 
     return (
         <>
-            {/* <Head>
-                <title>Gallery - SketchVault</title>
-                <meta name="description" content="Explore our collection of interactive digital sketches and generative art" />
-            </Head> */}
-
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
                 {/* Header */}
                 <header className="relative z-10 px-6 py-8">
@@ -194,9 +95,6 @@ const GalleryPage = () => {
                             <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
                                 Sketch Gallery
                             </h1>
-                            {/* <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-                                Discover interactive digital art and generative sketches
-                            </p> */}
                         </div>
 
                         {/* Search and Filters */}
@@ -298,7 +196,6 @@ const SketchCard = ({
                         alt={sketch.title}
                         fill
                         style={{ objectFit: "cover" }}
-                    // className="transition-transform duration-300 group-hover:scale-110"
                     />
                 </div>
 

@@ -33,8 +33,7 @@ const LiveSketchPage = () => {
             controls: {
                 particleCount: { min: 50, max: 500, default: 200 },
                 speed: { min: 0.1, max: 5, default: 1 },
-                size: { min: 1, max: 10, default: 3 },
-                gravity: { min: -2, max: 2, default: 0.1 }
+                size: { min: 1, max: 10, default: 3 }
             }
         },
         {
@@ -112,9 +111,7 @@ const LiveSketchPage = () => {
     }, [isPlaying, selectedSketch, controls]);
 
     const renderSketch = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-        // const time = Date.now() * 0.001;
-
-        // timeRef.current += 1; // Increment time for animation
+        timeRef.current += 0.01;
         
         const sketchControls = controls[selectedSketch];
 
@@ -134,8 +131,6 @@ const LiveSketchPage = () => {
     const renderParticles = (ctx: CanvasRenderingContext2D, width: number, height: number, controls: any) => {
         ctx.fillStyle = '#8b5cf6';
 
-        timeRef.current += controls.speed * 0.01;
-
         for (let i = 0; i < controls.particleCount; i++) {
             const x = (Math.sin(timeRef.current * controls.speed + i) * width / 4) + width / 2;
             const y = (Math.cos(timeRef.current * controls.speed * 0.7 + i * 0.5) * height / 4) + height / 2;
@@ -150,8 +145,6 @@ const LiveSketchPage = () => {
         ctx.lineWidth = 2;
         ctx.beginPath();
 
-        timeRef.current += 0.01;
-
         for (let x = 0; x < width; x += 2) {
             let y = height / 2;
             for (let h = 1; h <= controls.harmonics; h++) {
@@ -163,13 +156,9 @@ const LiveSketchPage = () => {
         ctx.stroke();
     };
 
-    // Replace the renderFractal function in pages/live-sketch.tsx
-
     const renderFractal = (ctx: CanvasRenderingContext2D, width: number, height: number, controls: any) => {
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 2;
-
-        timeRef.current += 0.01;
 
         // Use iterative approach instead of recursion to prevent stack overflow
         interface Branch {
@@ -445,41 +434,6 @@ const LiveSketchPage = () => {
                     </div>
                 </div>
             </div>
-
-            <style jsx>{`
-        .slider::-webkit-slider-thumb {
-          appearance: none;
-          height: 20px;
-          width: 20px;
-          border-radius: 50%;
-          background: linear-gradient(45deg, #8b5cf6, #06b6d4);
-          cursor: pointer;
-          border: 2px solid white;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        }
-
-        .slider::-moz-range-thumb {
-          height: 20px;
-          width: 20px;
-          border-radius: 50%;
-          background: linear-gradient(45deg, #8b5cf6, #06b6d4);
-          cursor: pointer;
-          border: 2px solid white;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        }
-
-        .slider::-webkit-slider-track {
-          height: 8px;
-          border-radius: 4px;
-          background: rgba(255, 255, 255, 0.2);
-        }
-
-        .slider::-moz-range-track {
-          height: 8px;
-          border-radius: 4px;
-          background: rgba(255, 255, 255, 0.2);
-        }
-      `}</style>
         </>
     );
 };
