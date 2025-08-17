@@ -1,13 +1,20 @@
-export interface Sketch {
+import { IControlSlider, IControlToggle } from "./controls";
+
+export type SketchType = "3d" | "generative" | "interactive" | "2d";
+
+export interface ISketch {
     id: number;
     title: string;
     description: string;
-    types: ('3d' | 'generative' | 'interactive' | "2d")[];
+    types: SketchType[];
     tags: string[];
     thumbnail: string;
     link: string;
-    isLiked: boolean;
-    likes: number;
-    views: number;
-    createdAt: string;
+}
+
+export interface ISketchControls {
+    id: number;
+    name: string;
+    controlSliders: IControlSlider[];
+    controlToggles: IControlToggle[];
 }

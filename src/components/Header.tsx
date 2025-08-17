@@ -13,8 +13,7 @@ export default function Header() {
     }, [pathname]);
 
     return (
-
-        <header className="relative z-20 px-6 py-6">
+        <header className={`relative z-20 px-6 py-6 ${pathname === "/live-sketch" ? "bg-black/40 backdrop-blur-sm border-b border-white/10" : ""}`}>
             <div className="max-w-7xl mx-auto flex justify-between items-center">
                 <Link href="/" className="flex items-center space-x-2">
                     <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-lg"></div>

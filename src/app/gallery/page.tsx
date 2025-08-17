@@ -8,16 +8,16 @@ import {
     XMarkIcon
 } from '@heroicons/react/24/outline';
 
-import { Sketch } from '@/types/Sketch';
-import { sketches as sketchData } from '@/data/sketches';
+import { ISketch } from '@/types/sketch';
+import { sketchData } from '@/data/sketchData';
 import Header from '@/components/Header';
 
 const GalleryPage = () => {
-    const [sketches, setSketches] = useState<Sketch[]>([]);
-    const [filteredSketches, setFilteredSketches] = useState<Sketch[]>([]);
+    const [sketches, setSketches] = useState<ISketch[]>([]);
+    const [filteredSketches, setFilteredSketches] = useState<ISketch[]>([]);
     const [selectedFilter, setSelectedFilter] = useState<'all' | '3d' | 'generative' | 'interactive'>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedSketch, setSelectedSketch] = useState<Sketch | null>(null);
+    const [selectedSketch, setSelectedSketch] = useState<ISketch | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
@@ -42,18 +42,6 @@ const GalleryPage = () => {
 
         setFilteredSketches(filtered);
     }, [selectedFilter, searchQuery, sketches]);
-
-    const toggleLike = (sketchId: number) => {
-        setSketches(prev => prev.map(sketch =>
-            sketch.id === sketchId
-                ? {
-                    ...sketch,
-                    isLiked: !sketch.isLiked,
-                    likes: sketch.isLiked ? sketch.likes - 1 : sketch.likes + 1
-                }
-                : sketch
-        ));
-    };
 
     const filterButtons = [
         { key: 'all', label: 'All Sketches' },
@@ -118,7 +106,6 @@ const GalleryPage = () => {
                                 <SketchCard
                                     key={sketch.id}
                                     sketch={sketch}
-                                    onLike={() => toggleLike(sketch.id)}
                                     onView={() => setSelectedSketch(sketch)}
                                     delay={index * 100}
                                 />
@@ -138,7 +125,6 @@ const GalleryPage = () => {
                     <SketchModal
                         sketch={selectedSketch}
                         onClose={() => setSelectedSketch(null)}
-                        onLike={() => toggleLike(selectedSketch.id)}
                     />
                 )}
             </div>
@@ -152,8 +138,7 @@ const SketchCard = ({
     onView,
     delay
 }: {
-    sketch: Sketch;
-    onLike: () => void;
+    sketch: ISketch;
     onView: () => void;
     delay: number;
 }) => {
@@ -235,9 +220,8 @@ const SketchModal = ({
     sketch,
     onClose,
 }: {
-    sketch: Sketch;
+    sketch: ISketch;
     onClose: () => void;
-    onLike: () => void;
 }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">

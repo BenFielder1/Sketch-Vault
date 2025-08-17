@@ -1,19 +1,16 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from "next/navigation";
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import {
-    PlayIcon,
-    PauseIcon,
-    ArrowPathIcon,
-    Cog6ToothIcon,
-    PhotoIcon
-} from '@heroicons/react/24/outline';
 
-import ControlSlider from '@/components/ControlSlider';
-import ControlToggle from '@/components/ControlToggle';
-import SketchHeader from '@/components/SketchHeader';
+import SketchHeader from '@/components/sketches/SketchHeader';
+import PauseButton from '@/components/sketches/PauseButton';
+import InfoPanel from '@/components/sketches/InfoPanel';
+
+import { sketchControls } from '@/data/sketchData';
+import Controls from '@/components/sketches/Controls';
 
 interface PlanetData {
     name: string;
@@ -33,9 +30,10 @@ const PlanetarySystemPage = () => {
     const controlsRef = useRef<OrbitControls | null>(null);
     const animationIdRef = useRef<number | null>(null);
     const timeRef = useRef<number>(0);
+    const planetsRef = useRef<THREE.Group[]>([]);
+    const orbitLinesRef = useRef<THREE.Line[]>([]);
 
     const [isPlaying, setIsPlaying] = useState(true);
-    const [showControls, setShowControls] = useState(true);
     const [controls, setControls] = useState({
         timeSpeed: 1,
         planetScale: 1,
@@ -45,6 +43,8 @@ const PlanetarySystemPage = () => {
         cameraAutoRotate: false,
         sunIntensity: 1
     });
+
+    const pathname = usePathname();
 
     // Planet configuration
     const planetsData: PlanetData[] = [
@@ -57,9 +57,6 @@ const PlanetarySystemPage = () => {
         { name: 'Uranus', size: 1.6, color: '#4fd0e7', distance: 65, speed: 0.01, tilt: 97.8 },
         { name: 'Neptune', size: 1.5, color: '#4b70dd', distance: 80, speed: 0.006, tilt: 28.3 }
     ];
-
-    const planetsRef = useRef<THREE.Group[]>([]);
-    const orbitLinesRef = useRef<THREE.Line[]>([]);
 
     useEffect(() => {
         if (!mountRef.current) return;
@@ -177,8 +174,8 @@ const PlanetarySystemPage = () => {
                 }
             }
 
-            
-            if (sceneRef.current && cameraRef.current && rendererRef.current){
+
+            if (sceneRef.current && cameraRef.current && rendererRef.current) {
                 rendererRef.current.render(sceneRef.current, cameraRef.current);
             }
             animationIdRef.current = requestAnimationFrame(animate);
@@ -340,119 +337,31 @@ const PlanetarySystemPage = () => {
     };
 
     return (
-        <>
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
-                <SketchHeader />
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
+            <SketchHeader title="Planetary System" />
 
-                <div className="flex h-full flex-1">
-                    {/* Controls Sidebar */}
-                    <div className={`${showControls ? 'w-80' : 'w-16'} transition-all duration-300 bg-black/40 backdrop-blur-sm border-r border-white/10 flex flex-col`}>
-                        <button
-                            onClick={() => setShowControls(!showControls)}
-                            className="p-4 text-white hover:bg-white/10 transition-colors"
-                        >
-                            <Cog6ToothIcon className="w-6 h-6" />
-                        </button>
+            <div className="flex h-full flex-1">
+                <Controls
+                    sliders={sketchControls.filter(s => pathname.includes(s.name))[0].controlSliders}
+                    toggles={sketchControls.filter(s => pathname.includes(s.name))[0].controlToggles}
+                    handleControlChange={handleControlChange}
+                    resetCamera={resetCamera}
+                    saveScreenshot={saveScreenshot}
+                />
 
-                        {showControls && (
-                            <>
-                                <div className="p-4 flex-1 overflow-y-auto">
-                                    <h3 className="text-white font-semibold mb-4">Animation Controls</h3>
+                <div className="flex-1 relative">
+                    <div ref={mountRef} className="w-full h-full" />
 
-                                    <div className="space-y-6">
-                                        <ControlSlider
-                                            label="Planet Scale"
-                                            value={controls.planetScale}
-                                            min={0.5}
-                                            max={3}
-                                            step={0.1}
-                                            onChange={(value) => handleControlChange('planetScale', value)}
-                                        />
+                    <PauseButton isPlaying={isPlaying} setIsPlaying={setIsPlaying} />
 
-                                        <ControlSlider
-                                            label="Orbit Speed"
-                                            value={controls.orbitSpeed}
-                                            min={0.1}
-                                            max={5}
-                                            step={0.1}
-                                            onChange={(value) => handleControlChange('orbitSpeed', value)}
-                                        />
-                                    </div>
-
-                                    <h3 className="text-white font-semibold mb-4 mt-8">Display Options</h3>
-
-                                    <div className="space-y-4">
-                                        <ControlToggle
-                                            label="Show Orbits"
-                                            value={controls.showOrbits}
-                                            onChange={(value) => handleControlChange('showOrbits', value)}
-                                        />
-
-                                        <ControlToggle
-                                            label="Show Stars"
-                                            value={controls.showStars}
-                                            onChange={(value) => handleControlChange('showStars', value)}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="p-4 border-t border-white/10 space-y-3">
-                                    <button
-                                        onClick={resetCamera}
-                                        className="w-full flex items-center justify-center gap-2 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
-                                    >
-                                        <ArrowPathIcon className="w-4 h-4" />
-                                        Reset Camera
-                                    </button>
-
-                                    <button
-                                        onClick={saveScreenshot}
-                                        className="w-full flex items-center justify-center gap-2 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
-                                    >
-                                        <PhotoIcon className="w-4 h-4" />
-                                        Save Screenshot
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                    </div>
-
-                    {/* 3D Scene */}
-                    <div className="flex-1 relative">
-                        <div ref={mountRef} className="w-full h-full" />
-
-                        {/* Play/Pause Button */}
-                        <div className="absolute top-4 right-4">
-                            <button
-                                onClick={() => setIsPlaying(!isPlaying)}
-                                className={`p-3 rounded-full backdrop-blur-sm transition-all duration-300 ${isPlaying
-                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                    : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                    }`}
-                            >
-                                {isPlaying ? (
-                                    <PauseIcon className="w-6 h-6" />
-                                ) : (
-                                    <PlayIcon className="w-6 h-6" />
-                                )}
-                            </button>
-                        </div>
-
-                        {/* Info Panel */}
-                        <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white max-w-xs">
-                            <h3 className="font-semibold mb-2">Solar System</h3>
-                            <p className="text-sm text-gray-300 mb-2">
-                                Interactive 3D model with {planetsData.length} planets orbiting the sun.
-                            </p>
-                            <p className="text-xs text-gray-400">
-                                Use mouse to orbit, zoom, and pan the camera.
-                                Adjust controls in the sidebar.
-                            </p>
-                        </div>
-                    </div>
+                    <InfoPanel
+                        title="Solar System"
+                        text={`Interactive 3D model with ${planetsData.length} planets orbiting the sun.`}
+                        controls="Use mouse to orbit, zoom, and pan the camera. Adjust controls in the sidebar."
+                    />
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 

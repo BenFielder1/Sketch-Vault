@@ -1,20 +1,16 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
 import dynamic from "next/dynamic";
-import {
-    PlayIcon,
-    PauseIcon,
-    ArrowPathIcon,
-    Cog6ToothIcon,
-    PhotoIcon
-} from '@heroicons/react/24/outline';
+import { usePathname } from 'next/navigation';
 
 import PF from "pathfinding";
 import p5 from 'p5';
 
-import ControlSlider from '@/components/ControlSlider';
-import ControlToggle from '@/components/ControlToggle';
-import SketchHeader from '@/components/SketchHeader';
+import SketchHeader from '@/components/sketches/SketchHeader';
+import { sketchControls } from '@/data/sketchData';
+import Controls from '@/components/sketches/Controls';
+import PauseButton from '@/components/sketches/PauseButton';
+import InfoPanel from '@/components/sketches/InfoPanel';
 
 const Sketch = dynamic(() => import("react-p5").then(mod => mod.default), {
     ssr: false
@@ -22,13 +18,11 @@ const Sketch = dynamic(() => import("react-p5").then(mod => mod.default), {
 
 const SnakeAIPage = () => {
     const [isPlaying, setIsPlaying] = useState(true);
-    const [showControls, setShowControls] = useState(true);
     const [controls, setControls] = useState({
         gameSpeed: 10,
         showGrid: true,
         showPath: false,
-        autoRestart: true,
-        difficulty: 1
+        autoRestart: true
     });
 
     const gameStateRef = useRef({
@@ -52,6 +46,8 @@ const SnakeAIPage = () => {
         p5Instance: null as p5 | null,
         gameStarted: false
     });
+
+    const pathname = usePathname();
 
     useEffect(() => {
         const gameState = gameStateRef.current;
@@ -79,14 +75,14 @@ const SnakeAIPage = () => {
         const parentElement = canvasParentRef.parentElement;
         gameStateRef.current.width1 = Math.floor((parentElement?.clientWidth ?? 600) / 20);
         gameStateRef.current.height1 = Math.floor((parentElement?.clientHeight ?? 400) / 20);
-        
+
         gameStateRef.current.p5Instance = p5;
         gameStateRef.current.gameStarted = true;
-        
+
         p5.createCanvas(gameStateRef.current.width1 * 20, gameStateRef.current.height1 * 20).parent(canvasParentRef);
-        
+
         initializeGrid();
-        
+
         if (isPlaying) {
             p5.loop();
         } else {
@@ -96,7 +92,7 @@ const SnakeAIPage = () => {
 
     const draw = (p5: p5) => {
         const gameState = gameStateRef.current;
-        
+
         p5.background(20, 20, 30);
 
         initializeGrid();
@@ -121,7 +117,7 @@ const SnakeAIPage = () => {
 
         p5.fill(255, 0, 0);
         p5.square(gameState.snakeX[0] * 20, gameState.snakeY[0] * 20, 20);
-        
+
         for (let x = 1; x < gameState.snakeX.length; x++) {
             p5.square(gameState.snakeX[x] * 20, gameState.snakeY[x] * 20, 20);
             gameState.grid[gameState.snakeY[x]][gameState.snakeX[x]] = 1;
@@ -136,10 +132,10 @@ const SnakeAIPage = () => {
                 } else {
                     gameState.usefulGrid = new PF.Grid(gameState.grid);
                     gameState.path = gameState.finder.findPath(
-                        gameState.snakeX[0], 
-                        gameState.snakeY[0], 
-                        gameState.appleX, 
-                        gameState.appleY, 
+                        gameState.snakeX[0],
+                        gameState.snakeY[0],
+                        gameState.appleX,
+                        gameState.appleY,
                         gameState.usefulGrid
                     );
                     gameState.taken = false;
@@ -165,7 +161,7 @@ const SnakeAIPage = () => {
         }
 
         // Check wall collision
-        if (gameState.snakeX[0] < 0 || gameState.snakeX[0] >= gameState.width1 || 
+        if (gameState.snakeX[0] < 0 || gameState.snakeX[0] >= gameState.width1 ||
             gameState.snakeY[0] < 0 || gameState.snakeY[0] >= gameState.height1) {
             gameState.isDead = true;
         }
@@ -199,10 +195,10 @@ const SnakeAIPage = () => {
         if (!gameState.isDead) {
             gameState.usefulGrid = new PF.Grid(gameState.grid);
             gameState.path = gameState.finder.findPath(
-                gameState.snakeX[0], 
-                gameState.snakeY[0], 
-                gameState.appleX, 
-                gameState.appleY, 
+                gameState.snakeX[0],
+                gameState.snakeY[0],
+                gameState.appleX,
+                gameState.appleY,
                 gameState.usefulGrid
             );
 
@@ -226,7 +222,7 @@ const SnakeAIPage = () => {
     // Game logic functions
     const moveSnake = (path: number[][] | null): void => {
         const gameState = gameStateRef.current;
-        
+
         for (let i = gameState.snakeX.length - 1; i > 0; i--) {
             gameState.snakeX[i] = gameState.snakeX[i - 1];
         }
@@ -263,7 +259,7 @@ const SnakeAIPage = () => {
         gameState.taken = true;
         gameState.lastDirection = "r";
         gameState.lastActualDirection = "d";
-        
+
         // Ensure game is playing after reset
         setIsPlaying(true);
         if (gameState.p5Instance) {
@@ -431,123 +427,29 @@ const SnakeAIPage = () => {
     return (
         <>
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
-                <SketchHeader />
+                <SketchHeader title="Snake AI" />
 
                 <div className="flex h-full flex-1">
-                    {/* Controls Sidebar */}
-                    <div className={`${showControls ? 'w-80' : 'w-16'} transition-all duration-300 bg-black/40 backdrop-blur-sm border-r border-white/10 flex flex-col`}>
-                        <button
-                            onClick={() => setShowControls(!showControls)}
-                            className="p-4 text-white hover:bg-white/10 transition-colors"
-                        >
-                            <Cog6ToothIcon className="w-6 h-6" />
-                        </button>
+                    <Controls
+                        sliders={sketchControls.filter(s => pathname.includes(s.name))[0].controlSliders}
+                        toggles={sketchControls.filter(s => pathname.includes(s.name))[0].controlToggles}
+                        handleControlChange={handleControlChange}
+                        resetGame={resetGame}
+                        saveScreenshot={saveScreenshot}
+                    />
 
-                        {showControls && (
-                            <>
-                                <div className="p-4 flex-1 overflow-y-auto">
-                                    <h3 className="text-white font-semibold mb-4">Game Controls</h3>
-
-                                    <div className="space-y-6">
-                                        <ControlSlider
-                                            label="Game Speed (FPS)"
-                                            value={controls.gameSpeed}
-                                            min={1}
-                                            max={60}
-                                            step={1}
-                                            onChange={(value) => handleControlChange('gameSpeed', value)}
-                                        />
-
-                                        <ControlSlider
-                                            label="Difficulty"
-                                            value={controls.difficulty}
-                                            min={1}
-                                            max={5}
-                                            step={1}
-                                            onChange={(value) => handleControlChange('difficulty', value)}
-                                        />
-                                    </div>
-
-                                    <h3 className="text-white font-semibold mb-4 mt-8">Display Options</h3>
-
-                                    <div className="space-y-4">
-                                        <ControlToggle
-                                            label="Show Grid"
-                                            value={controls.showGrid}
-                                            onChange={(value) => handleControlChange('showGrid', value)}
-                                        />
-
-                                        <ControlToggle
-                                            label="Show AI Path"
-                                            value={controls.showPath}
-                                            onChange={(value) => handleControlChange('showPath', value)}
-                                        />
-
-                                        <ControlToggle
-                                            label="Auto Restart"
-                                            value={controls.autoRestart}
-                                            onChange={(value) => handleControlChange('autoRestart', value)}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="p-4 border-t border-white/10 space-y-3">
-                                    <button
-                                        onClick={resetGame}
-                                        className="w-full flex items-center justify-center gap-2 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
-                                    >
-                                        <ArrowPathIcon className="w-4 h-4" />
-                                        Reset Game
-                                    </button>
-
-                                    <button
-                                        onClick={saveScreenshot}
-                                        className="w-full flex items-center justify-center gap-2 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
-                                    >
-                                        <PhotoIcon className="w-4 h-4" />
-                                        Save Screenshot
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                    </div>
-
-                    {/* Game Canvas */}
                     <div className="flex-1 relative">
                         <div className="w-full h-full">
                             <Sketch setup={setup} draw={draw} keyPressed={keyPressed} />
                         </div>
 
-                        {/* Play/Pause Button */}
-                        <div className="absolute top-4 right-4">
-                            <button
-                                onClick={() => setIsPlaying(!isPlaying)}
-                                className={`p-3 rounded-full backdrop-blur-sm transition-all duration-300 ${
-                                    isPlaying
-                                        ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                        : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                }`}
-                            >
-                                {isPlaying ? (
-                                    <PauseIcon className="w-6 h-6" />
-                                ) : (
-                                    <PlayIcon className="w-6 h-6" />
-                                )}
-                            </button>
-                        </div>
+                        <PauseButton isPlaying={isPlaying} setIsPlaying={setIsPlaying} />
 
-                        {/* Info Panel */}
-                        <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white max-w-xs">
-                            <h3 className="font-semibold mb-2">Snake AI</h3>
-                            <p className="text-sm text-gray-300 mb-2">
-                                This snake uses an A* pathfinding algorithm to find the optimal route to food. 
-                                The AI continuously recalculates its path to navigate around obstacles efficiently.
-                            </p>
-                            <div className="text-xs text-gray-400 space-y-1">
-                                <div>Press Space: Restart game</div>
-                                <div>Status: {gameStateRef.current?.isDead ? 'Game Over' : (isPlaying ? 'Playing' : 'Paused')}</div>
-                            </div>
-                        </div>
+                        <InfoPanel
+                            title="Snake AI"
+                            text="This snake uses an A* pathfinding algorithm to find the optimal route to food. The AI continuously recalculates its path to navigate around obstacles efficiently."
+                            controls="Press Space: Restart game"
+                        />
                     </div>
                 </div>
             </div>
