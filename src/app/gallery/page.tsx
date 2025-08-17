@@ -1,16 +1,12 @@
 "use client"
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
-import {
-    MagnifyingGlassIcon,
-    PlayIcon,
-    ShareIcon,
-    XMarkIcon
-} from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 import { ISketch } from '@/types/sketch';
 import { sketchData } from '@/data/sketchData';
 import Header from '@/components/Header';
+import SketchModal from '@/components/SketchModal';
+import SketchCard from '@/components/SketchCard';
 
 const GalleryPage = () => {
     const [sketches, setSketches] = useState<ISketch[]>([]);
@@ -129,164 +125,6 @@ const GalleryPage = () => {
                 )}
             </div>
         </>
-    );
-};
-
-// Sketch Card Component
-const SketchCard = ({
-    sketch,
-    onView,
-    delay
-}: {
-    sketch: ISketch;
-    onView: () => void;
-    delay: number;
-}) => {
-    const typeColors = {
-        '3d': 'from-blue-500 to-purple-500',
-        'generative': 'from-green-500 to-teal-500',
-        'interactive': 'from-orange-500 to-pink-500',
-        '2d': 'from-red-500 to-purple-500'
-    };
-
-    return (
-        <div
-            className="group relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 transition-all duration-500 hover:scale-105"
-            style={{ animationDelay: `${delay}ms` }}
-        >
-            {/* Thumbnail */}
-            <div className="relative aspect-square overflow-hidden">
-                <div className={`w-full h-full`}>
-                    <Image
-                        src={sketch.thumbnail}
-                        alt={sketch.title}
-                        fill
-                        style={{ objectFit: "cover" }}
-                    />
-                </div>
-
-                {/* Type Badge */}
-                <div className="absolute top-4 left-4">
-                    {sketch.types.map((type) => (
-                        <span
-                            key={type}
-                            className={`px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r ${typeColors[type as keyof typeof typeColors] || 'from-gray-500 to-gray-700'} mr-2`}
-                        >
-                            {type}
-                        </span>
-                    ))}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                    <button className="p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors">
-                        <ShareIcon className="w-4 h-4 text-white" />
-                    </button>
-                </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-6">
-                <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-purple-300 transition-colors">
-                    {sketch.title}
-                </h3>
-                <p className="text-gray-300 text-sm mb-4 line-clamp-2">
-                    {sketch.description}
-                </p>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                    {sketch.tags.slice(0, 3).map((tag) => (
-                        <span key={tag} className="px-2 py-1 bg-white/10 text-gray-300 text-xs rounded-md">
-                            {tag}
-                        </span>
-                    ))}
-                </div>
-
-                {/* View Button */}
-                <button
-                    onClick={onView}
-                    className="w-full mt-4 bg-gradient-to-r from-purple-500 to-cyan-500 text-white py-3 rounded-lg font-medium hover:from-purple-600 hover:to-cyan-600 hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
-                >
-                    View Sketch
-                </button>
-            </div>
-        </div>
-    );
-};
-
-// Sketch Modal Component
-const SketchModal = ({
-    sketch,
-    onClose,
-}: {
-    sketch: ISketch;
-    onClose: () => void;
-}) => {
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div className="relative bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-                {/* Close Button */}
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 z-10 p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
-                >
-                    <XMarkIcon className="w-6 h-6 text-white" />
-                </button>
-
-                <div className="flex flex-col md:flex-row">
-                    {/* Sketch Display */}
-                    <div className="flex-1 aspect-square md:aspect-auto relative overflow-hidden">
-                        {/* Background Image */}
-                        <Image
-                            src={sketch.thumbnail}
-                            alt={sketch.title}
-                            fill
-                            style={{ objectFit: "cover" }}
-                            className="absolute inset-0"
-                        />
-
-                        {/* Overlay gradient for better text readability */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/20 to-black/60"></div>
-
-                        {/* Text overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="text-white text-center">
-                                <PlayIcon className="w-24 h-24 mx-auto mb-4 opacity-80 drop-shadow-lg" />
-                                <p className="text-lg font-medium drop-shadow-lg">Interactive Sketch</p>
-                                <p className="text-sm opacity-80 drop-shadow-lg">Click to launch</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Info Panel */}
-                    <div className="w-full md:w-96 p-8 bg-slate-800">
-                        <h2 className="text-2xl font-bold text-white mb-4">{sketch.title}</h2>
-                        <p className="text-gray-300 mb-6">{sketch.description}</p>
-
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-2 mb-6">
-                            {sketch.tags.map((tag) => (
-                                <span key={tag} className="px-3 py-1 bg-white/10 text-gray-300 text-sm rounded-full">
-                                    {tag}
-                                </span>
-                            ))}
-                        </div>
-
-                        <button
-                            onClick={() => {
-                                if (sketch.link) {
-                                    window.location.href = sketch.link;
-                                }
-                            }}
-                            className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-cyan-600 hover:shadow-lg transition-all duration-300"
-                        >
-                            Launch
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
     );
 };
 
