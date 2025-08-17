@@ -1,201 +1,455 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
-import Head from 'next/head';
-import Link from 'next/link';
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import {
-    ArrowLeftIcon,
-    PlayIcon,
-    PauseIcon,
-    ArrowPathIcon,
-    Cog6ToothIcon,
-    PhotoIcon
-} from '@heroicons/react/24/outline';
+import dynamic from "next/dynamic";
+import { usePathname } from 'next/navigation';
 
-interface PlanetData {
-    name: string;
-    size: number;
-    color: string;
-    distance: number;
-    speed: number;
-    tilt: number;
-    rings?: boolean;
-}
+import PF from "pathfinding";
+import p5 from 'p5';
 
-const SnakePage = () => {
-    const mountRef = useRef<HTMLDivElement>(null);
-    const sceneRef = useRef<THREE.Scene | null>(null);
-    const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-    const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-    const controlsRef = useRef<OrbitControls | null>(null);
-    const animationIdRef = useRef<number | null>(null);
+import SketchHeader from '@/components/sketches/SketchHeader';
+import { sketchControls } from '@/data/sketchData';
+import Controls from '@/components/sketches/Controls';
+import PauseButton from '@/components/sketches/PauseButton';
+import InfoPanel from '@/components/sketches/InfoPanel';
 
+const Sketch = dynamic(() => import("react-p5").then(mod => mod.default), {
+    ssr: false
+});
+
+const SnakeAIPage = () => {
     const [isPlaying, setIsPlaying] = useState(true);
-    const [showControls, setShowControls] = useState(true);
     const [controls, setControls] = useState({
-        timeSpeed: 1,
-        planetScale: 1,
-        orbitSpeed: 1,
-        showOrbits: true,
-        showStars: true,
-        cameraAutoRotate: false,
-        sunIntensity: 1
+        gameSpeed: 10,
+        showGrid: true,
+        showPath: false,
+        autoRestart: true
     });
 
-    // Update controls effect
-    useEffect(() => {
+    const gameStateRef = useRef({
+        snakeX: [5, 4, 3, 2, 1],
+        snakeY: [1, 1, 1, 1, 1],
+        direction: "r",
+        appleCaught: true,
+        appleX: 0,
+        appleY: 0,
+        score: 0,
+        isDead: false,
+        width1: 0,
+        height1: 0,
+        lastDirection: "r",
+        lastActualDirection: "d",
+        taken: true,
+        grid: [] as number[][],
+        usefulGrid: new PF.Grid([[]]),
+        finder: new PF.AStarFinder(),
+        path: null as number[][] | null,
+        p5Instance: null as p5 | null,
+        gameStarted: false
+    });
 
-    }, []);
+    const pathname = usePathname();
+
+    useEffect(() => {
+        const gameState = gameStateRef.current;
+        if (gameState.p5Instance && gameState.gameStarted) {
+            if (isPlaying) {
+                gameState.p5Instance.loop();
+            } else {
+                gameState.p5Instance.noLoop();
+            }
+        }
+    }, [isPlaying]);
+
+    const initializeGrid = (): void => {
+        const { width1, height1 } = gameStateRef.current;
+        gameStateRef.current.grid = [];
+        for (let y = 0; y < height1; y++) {
+            gameStateRef.current.grid.push([]);
+            for (let x = 0; x < width1; x++) {
+                gameStateRef.current.grid[y].push(0);
+            }
+        }
+    };
+
+    const setup = (p5: p5, canvasParentRef: Element) => {
+        const parentElement = canvasParentRef.parentElement;
+        gameStateRef.current.width1 = Math.floor((parentElement?.clientWidth ?? 600) / 20);
+        gameStateRef.current.height1 = Math.floor((parentElement?.clientHeight ?? 400) / 20);
+
+        gameStateRef.current.p5Instance = p5;
+        gameStateRef.current.gameStarted = true;
+
+        p5.createCanvas(gameStateRef.current.width1 * 20, gameStateRef.current.height1 * 20).parent(canvasParentRef);
+
+        initializeGrid();
+
+        if (isPlaying) {
+            p5.loop();
+        } else {
+            p5.noLoop();
+        }
+    };
+
+    const draw = (p5: p5) => {
+        const gameState = gameStateRef.current;
+
+        p5.background(20, 20, 30);
+
+        initializeGrid();
+
+        if (controls.showGrid) {
+            p5.stroke(100, 100, 120);
+            for (let x = 0; x < p5.width; x += 20) {
+                p5.line(x, 0, x, p5.height);
+            }
+            for (let y = 0; y < p5.height; y += 20) {
+                p5.line(0, y, p5.width, y);
+            }
+        }
+
+        if (gameState.snakeX[0] === gameState.appleX && gameState.snakeY[0] === gameState.appleY) {
+            gameState.appleCaught = true;
+            gameState.taken = true;
+            gameState.score++;
+            gameState.snakeX.push(gameState.snakeX[gameState.snakeX.length - 1]);
+            gameState.snakeY.push(gameState.snakeY[gameState.snakeY.length - 1]);
+        }
+
+        p5.fill(255, 0, 0);
+        p5.square(gameState.snakeX[0] * 20, gameState.snakeY[0] * 20, 20);
+
+        for (let x = 1; x < gameState.snakeX.length; x++) {
+            p5.square(gameState.snakeX[x] * 20, gameState.snakeY[x] * 20, 20);
+            gameState.grid[gameState.snakeY[x]][gameState.snakeX[x]] = 1;
+        }
+
+        if (gameState.appleCaught) {
+            while (gameState.taken) {
+                gameState.appleX = Math.floor(Math.random() * (gameState.width1 - 4)) + 2;
+                gameState.appleY = Math.floor(Math.random() * (gameState.height1 - 4)) + 2;
+                if (gameState.grid[gameState.appleY][gameState.appleX] === 1) {
+                    // Position already taken, try again
+                } else {
+                    gameState.usefulGrid = new PF.Grid(gameState.grid);
+                    gameState.path = gameState.finder.findPath(
+                        gameState.snakeX[0],
+                        gameState.snakeY[0],
+                        gameState.appleX,
+                        gameState.appleY,
+                        gameState.usefulGrid
+                    );
+                    gameState.taken = false;
+                }
+            }
+            gameState.appleCaught = false;
+        }
+
+        p5.fill(0, 255, 0);
+        p5.square(gameState.appleX * 20, gameState.appleY * 20, 20);
+
+        // Draw path if enabled
+        if (controls.showPath && gameState.path) {
+            p5.stroke(255, 255, 0);
+            for (let i = 0; i < gameState.path.length - 1; i++) {
+                const x1 = gameState.path[i][0] * 20 + 10;
+                const y1 = gameState.path[i][1] * 20 + 10;
+                const x2 = gameState.path[i + 1][0] * 20 + 10;
+                const y2 = gameState.path[i + 1][1] * 20 + 10;
+                p5.line(x1, y1, x2, y2);
+            }
+            p5.stroke(0, 0, 0);
+        }
+
+        // Check wall collision
+        if (gameState.snakeX[0] < 0 || gameState.snakeX[0] >= gameState.width1 ||
+            gameState.snakeY[0] < 0 || gameState.snakeY[0] >= gameState.height1) {
+            gameState.isDead = true;
+        }
+
+        // Check self collision
+        for (let i = 1; i < gameState.snakeX.length; i++) {
+            if (gameState.snakeX[i] === gameState.snakeX[0] && gameState.snakeY[i] === gameState.snakeY[0]) {
+                gameState.isDead = true;
+            }
+        }
+
+        // Draw score
+        p5.fill(255, 255, 255);
+        p5.textSize(24);
+        p5.text("Score: " + gameState.score, 20, 30);
+
+        // Handle game over
+        if (gameState.isDead) {
+            if (controls.autoRestart) {
+                resetGame();
+            } else {
+                p5.fill(255, 255, 0);
+                p5.textSize(20);
+                p5.text("Game Over - Click Reset or Press Space", gameState.width1 * 10 - 180, gameState.height1 * 10);
+                // Don't continue game logic when dead
+                return;
+            }
+        }
+
+        // AI pathfinding and movement (only when not dead)
+        if (!gameState.isDead) {
+            gameState.usefulGrid = new PF.Grid(gameState.grid);
+            gameState.path = gameState.finder.findPath(
+                gameState.snakeX[0],
+                gameState.snakeY[0],
+                gameState.appleX,
+                gameState.appleY,
+                gameState.usefulGrid
+            );
+
+            checkDirection();
+            checkForWallCollision();
+            checkForBodyCollision();
+            moveSnake(gameState.path);
+        }
+
+        // Set frame rate based on game speed
+        p5.frameRate(controls.gameSpeed);
+    };
+
+    // Add keyPressed function to handle space key
+    const keyPressed = (p5: p5) => {
+        if (p5.keyCode === 32) { // Space key
+            resetGame();
+        }
+    };
+
+    // Game logic functions
+    const moveSnake = (path: number[][] | null): void => {
+        const gameState = gameStateRef.current;
+
+        for (let i = gameState.snakeX.length - 1; i > 0; i--) {
+            gameState.snakeX[i] = gameState.snakeX[i - 1];
+        }
+        for (let i = gameState.snakeY.length - 1; i > 0; i--) {
+            gameState.snakeY[i] = gameState.snakeY[i - 1];
+        }
+
+        if (path === null || path.length < 2) {
+            if (gameState.direction === "r") {
+                gameState.snakeX[0] = gameState.snakeX[0] + 1;
+            } else if (gameState.direction === "l") {
+                gameState.snakeX[0] = gameState.snakeX[0] - 1;
+            } else if (gameState.direction === "u") {
+                gameState.snakeY[0] = gameState.snakeY[0] - 1;
+            } else if (gameState.direction === "d") {
+                gameState.snakeY[0] = gameState.snakeY[0] + 1;
+            }
+        } else {
+            gameState.snakeX[0] = path[1][0];
+            gameState.snakeY[0] = path[1][1];
+        }
+    };
+
+    const resetGame = (): void => {
+        const gameState = gameStateRef.current;
+        gameState.snakeX = [5, 4, 3, 2, 1];
+        gameState.snakeY = [1, 1, 1, 1, 1];
+        gameState.direction = "r";
+        gameState.appleCaught = true;
+        gameState.appleX = 0;
+        gameState.appleY = 0;
+        gameState.score = 0;
+        gameState.isDead = false;
+        gameState.taken = true;
+        gameState.lastDirection = "r";
+        gameState.lastActualDirection = "d";
+
+        // Ensure game is playing after reset
+        setIsPlaying(true);
+        if (gameState.p5Instance) {
+            gameState.p5Instance.loop();
+        }
+    };
+
+    const checkDirection = (): void => {
+        const gameState = gameStateRef.current;
+        if (gameState.snakeX[0] < gameState.appleX) {
+            if (gameState.direction !== "l") {
+                gameState.lastDirection = gameState.direction;
+                gameState.direction = "r";
+            }
+        } else if (gameState.snakeX[0] > gameState.appleX) {
+            if (gameState.direction !== "r") {
+                gameState.lastDirection = gameState.direction;
+                gameState.direction = "l";
+            }
+        } else if (gameState.snakeY[0] < gameState.appleY) {
+            if (gameState.direction !== "u") {
+                gameState.lastDirection = gameState.direction;
+                gameState.direction = "d";
+            }
+        } else if (gameState.snakeY[0] > gameState.appleY) {
+            if (gameState.direction !== "d") {
+                gameState.lastDirection = gameState.direction;
+                gameState.direction = "u";
+            }
+        }
+        if (gameState.lastDirection !== gameState.direction) {
+            gameState.lastActualDirection = gameState.lastDirection;
+        }
+    };
+
+    const checkForWallCollision = (): void => {
+        const gameState = gameStateRef.current;
+        if (gameState.direction === "r") {
+            if (gameState.snakeX[0] + 1 >= gameState.width1) {
+                gameState.lastDirection = gameState.direction;
+                if (gameState.snakeY[0] + 1 >= gameState.height1) {
+                    gameState.direction = "u";
+                } else if (gameState.snakeY[0] - 1 < 0) {
+                    gameState.direction = "d";
+                } else {
+                    gameState.direction = gameState.lastActualDirection;
+                }
+            }
+        }
+        // Add similar logic for other directions...
+        if (gameState.direction === "l") {
+            if (gameState.snakeX[0] - 1 < 0) {
+                gameState.lastDirection = gameState.direction;
+                if (gameState.snakeY[0] + 1 >= gameState.height1) {
+                    gameState.direction = "u";
+                } else if (gameState.snakeY[0] - 1 < 0) {
+                    gameState.direction = "d";
+                } else {
+                    gameState.direction = gameState.lastActualDirection;
+                }
+            }
+        }
+        if (gameState.direction === "u") {
+            if (gameState.snakeY[0] - 1 < 0) {
+                gameState.lastDirection = gameState.direction;
+                if (gameState.snakeX[0] + 1 >= gameState.width1) {
+                    gameState.direction = "l";
+                } else if (gameState.snakeX[0] - 1 < 0) {
+                    gameState.direction = "r";
+                } else {
+                    gameState.direction = gameState.lastActualDirection;
+                }
+            }
+        }
+        if (gameState.direction === "d") {
+            if (gameState.snakeY[0] + 1 >= gameState.height1) {
+                gameState.lastDirection = gameState.direction;
+                if (gameState.snakeX[0] + 1 >= gameState.width1) {
+                    gameState.direction = "l";
+                } else if (gameState.snakeX[0] - 1 < 0) {
+                    gameState.direction = "r";
+                } else {
+                    gameState.direction = gameState.lastActualDirection;
+                }
+            }
+        }
+        if (gameState.lastDirection !== gameState.direction) {
+            gameState.lastActualDirection = gameState.lastDirection;
+        }
+    };
+
+    const checkForBodyCollision = (): void => {
+        const gameState = gameStateRef.current;
+        for (let i = 0; i < gameState.snakeX.length; i++) {
+            if (gameState.direction === "r") {
+                if (gameState.snakeX[0] + 1 === gameState.snakeX[i] && gameState.snakeY[0] === gameState.snakeY[i]) {
+                    gameState.lastDirection = gameState.direction;
+                    if (gameState.snakeY[0] + 1 === gameState.snakeY[i] && gameState.snakeX[0] === gameState.snakeX[i]) {
+                        gameState.direction = "u";
+                    } else if (gameState.snakeY[0] - 1 === gameState.snakeY[i] && gameState.snakeX[0] === gameState.snakeX[i]) {
+                        gameState.direction = "d";
+                    } else {
+                        gameState.direction = gameState.lastActualDirection;
+                    }
+                }
+            }
+            // Add similar logic for other directions (keeping original implementation)...
+            if (gameState.direction === "l") {
+                if (gameState.snakeX[0] - 1 === gameState.snakeX[i] && gameState.snakeY[0] === gameState.snakeY[i]) {
+                    gameState.lastDirection = gameState.direction;
+                    if (gameState.snakeY[0] + 1 === gameState.snakeY[i] && gameState.snakeX[0] === gameState.snakeX[i]) {
+                        gameState.direction = "u";
+                    } else if (gameState.snakeY[0] - 1 === gameState.snakeY[i] && gameState.snakeX[0] === gameState.snakeX[i]) {
+                        gameState.direction = "d";
+                    } else {
+                        gameState.direction = gameState.lastActualDirection;
+                    }
+                }
+            }
+            if (gameState.direction === "u") {
+                if (gameState.snakeY[0] - 1 === gameState.snakeY[i] && gameState.snakeX[0] === gameState.snakeX[i]) {
+                    gameState.lastDirection = gameState.direction;
+                    if (gameState.snakeX[0] + 1 === gameState.snakeX[i] && gameState.snakeY[0] === gameState.snakeY[i]) {
+                        gameState.direction = "l";
+                    } else if (gameState.snakeX[0] - 1 === gameState.snakeX[i] && gameState.snakeY[0] === gameState.snakeY[i]) {
+                        gameState.direction = "r";
+                    } else {
+                        gameState.direction = gameState.lastActualDirection;
+                    }
+                }
+            }
+            if (gameState.direction === "d") {
+                if (gameState.snakeY[0] + 1 === gameState.snakeY[i] && gameState.snakeX[0] === gameState.snakeX[i]) {
+                    gameState.lastDirection = gameState.direction;
+                    if (gameState.snakeX[0] + 1 === gameState.snakeX[i] && gameState.snakeY[0] === gameState.snakeY[i]) {
+                        gameState.direction = "l";
+                    } else if (gameState.snakeX[0] - 1 === gameState.snakeX[i] && gameState.snakeY[0] === gameState.snakeY[i]) {
+                        gameState.direction = "r";
+                    } else {
+                        gameState.direction = gameState.lastActualDirection;
+                    }
+                }
+            }
+        }
+        if (gameState.lastDirection !== gameState.direction) {
+            gameState.lastActualDirection = gameState.lastDirection;
+            checkForWallCollision();
+        }
+    };
 
     const handleControlChange = (key: string, value: number | boolean) => {
         setControls(prev => ({ ...prev, [key]: value }));
     };
 
     const saveScreenshot = () => {
-        if (rendererRef.current) {
+        const canvas = document.querySelector('canvas');
+        if (canvas) {
             const link = document.createElement('a');
-            link.download = `snake-${Date.now()}.png`;
-            link.href = rendererRef.current.domElement.toDataURL();
+            link.download = `snake-ai-${Date.now()}.png`;
+            link.href = canvas.toDataURL();
             link.click();
         }
     };
 
     return (
         <>
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900  flex flex-col">
-                {/* Header */}
-                <header className="relative z-20 px-6 py-4 bg-black/20 backdrop-blur-sm">
-                    <div className="max-w-7xl mx-auto flex justify-between items-center">
-                        <Link href="/gallery" className="flex items-center space-x-2 text-white hover:text-purple-300 transition-colors">
-                            <ArrowLeftIcon className="w-5 h-5" />
-                            <span>Back to Gallery</span>
-                        </Link>
-                        <h1 className="text-xl font-bold text-white">Snake AI</h1>
-                        <div className="w-24"></div> {/* Spacer for centering */}
-                    </div>
-                </header>
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
+                <SketchHeader title="Snake AI" />
 
                 <div className="flex h-full flex-1">
-                    {/* Controls Sidebar */}
-                    <div className={`${showControls ? 'w-80' : 'w-16'} transition-all duration-300 bg-black/40 backdrop-blur-sm border-r border-white/10 flex flex-col`}>
-                        <button
-                            onClick={() => setShowControls(!showControls)}
-                            className="p-4 text-white hover:bg-white/10 transition-colors"
-                        >
-                            <Cog6ToothIcon className="w-6 h-6" />
-                        </button>
+                    <Controls
+                        sliders={sketchControls.filter(s => pathname.includes(s.name))[0].controlSliders}
+                        toggles={sketchControls.filter(s => pathname.includes(s.name))[0].controlToggles}
+                        handleControlChange={handleControlChange}
+                        resetGame={resetGame}
+                        saveScreenshot={saveScreenshot}
+                    />
 
-                        {showControls && (
-                            <>
-                                <div className="p-4 flex-1 overflow-y-auto">
-                                    <h3 className="text-white font-semibold mb-4">Animation Controls</h3>
-
-                                    <div className="space-y-6">
-                                        <ControlSlider
-                                            label="Time Speed"
-                                            value={controls.timeSpeed}
-                                            min={0}
-                                            max={5}
-                                            step={0.1}
-                                            onChange={(value) => handleControlChange('timeSpeed', value)}
-                                        />
-
-                                        <ControlSlider
-                                            label="Planet Scale"
-                                            value={controls.planetScale}
-                                            min={0.5}
-                                            max={3}
-                                            step={0.1}
-                                            onChange={(value) => handleControlChange('planetScale', value)}
-                                        />
-
-                                        <ControlSlider
-                                            label="Orbit Speed"
-                                            value={controls.orbitSpeed}
-                                            min={0.1}
-                                            max={3}
-                                            step={0.1}
-                                            onChange={(value) => handleControlChange('orbitSpeed', value)}
-                                        />
-
-                                        <ControlSlider
-                                            label="Sun Intensity"
-                                            value={controls.sunIntensity}
-                                            min={0.1}
-                                            max={2}
-                                            step={0.1}
-                                            onChange={(value) => handleControlChange('sunIntensity', value)}
-                                        />
-                                    </div>
-
-                                    <h3 className="text-white font-semibold mb-4 mt-8">Display Options</h3>
-
-                                    <div className="space-y-4">
-                                        <ControlToggle
-                                            label="Show Orbits"
-                                            value={controls.showOrbits}
-                                            onChange={(value) => handleControlChange('showOrbits', value)}
-                                        />
-
-                                        <ControlToggle
-                                            label="Show Stars"
-                                            value={controls.showStars}
-                                            onChange={(value) => handleControlChange('showStars', value)}
-                                        />
-
-                                        <ControlToggle
-                                            label="Auto Rotate Camera"
-                                            value={controls.cameraAutoRotate}
-                                            onChange={(value) => handleControlChange('cameraAutoRotate', value)}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* <div className="p-4 border-t border-white/10 space-y-3">
-                                    <button
-                                        onClick={saveScreenshot}
-                                        className="w-full flex items-center justify-center gap-2 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
-                                    >
-                                        <PhotoIcon className="w-4 h-4" />
-                                        Save Screenshot
-                                    </button>
-                                </div> */}
-                            </>
-                        )}
-                    </div>
-
-                    {/* 3D Scene */}
                     <div className="flex-1 relative">
-                        <div className="w-full h-full" id="app">
-                            <Snake />
+                        <div className="w-full h-full">
+                            <Sketch setup={setup} draw={draw} keyPressed={keyPressed} />
                         </div>
 
-                        {/* Play/Pause Button */}
-                        <div className="absolute top-4 right-4">
-                            <button
-                                onClick={() => setIsPlaying(!isPlaying)}
-                                className={`p-3 rounded-full backdrop-blur-sm transition-all duration-300 ${isPlaying
-                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                    : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                    }`}
-                            >
-                                {isPlaying ? (
-                                    <PauseIcon className="w-6 h-6" />
-                                ) : (
-                                    <PlayIcon className="w-6 h-6" />
-                                )}
-                            </button>
-                        </div>
+                        <PauseButton isPlaying={isPlaying} setIsPlaying={setIsPlaying} />
 
-                        {/* Info Panel */}
-                        <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white max-w-xs">
-                            <h3 className="font-semibold mb-2">Snake AI</h3>
-                            <p className="text-sm text-gray-300 mb-2">
-                                This snake uses an A* routing algorithm to find the shortest path to the food.
-                                It continuously updates its path as it moves, allowing it to navigate around obstacles.
-                            </p>
-                        </div>
+                        <InfoPanel
+                            title="Snake AI"
+                            text="This snake uses an A* pathfinding algorithm to find the optimal route to food. The AI continuously recalculates its path to navigate around obstacles efficiently."
+                            controls="Press Space: Restart game"
+                        />
                     </div>
                 </div>
             </div>
@@ -203,447 +457,4 @@ const SnakePage = () => {
     );
 };
 
-// Control Components
-const ControlSlider = ({
-    label,
-    value,
-    min,
-    max,
-    step,
-    onChange
-}: {
-    label: string;
-    value: number;
-    min: number;
-    max: number;
-    step: number;
-    onChange: (value: number) => void;
-}) => (
-    <div>
-        <label className="block text-gray-300 text-sm font-medium mb-2">
-            {label}: {value.toFixed(1)}
-        </label>
-        <input
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            onChange={(e) => onChange(parseFloat(e.target.value))}
-            className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
-        />
-    </div>
-);
-
-const ControlToggle = ({
-    label,
-    value,
-    onChange
-}: {
-    label: string;
-    value: boolean;
-    onChange: (value: boolean) => void;
-}) => (
-    <div className="flex items-center justify-between">
-        <label className="text-gray-300 text-sm font-medium">{label}</label>
-        <button
-            onClick={() => onChange(!value)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? 'bg-gradient-to-r from-purple-500 to-cyan-500' : 'bg-white/20'
-                }`}
-        >
-            <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${value ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-            />
-        </button>
-    </div>
-);
-
-export default SnakePage;
-
-
-
-
-import dynamic from "next/dynamic"
-
-const Sketch = dynamic(() => import("react-p5").then(mod => mod.default), {
-    ssr: false
-});
-
-import PF from "pathfinding";
-
-// TypeScript interfaces
-interface P5Instance {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    createCanvas: (width: number, height: number) => any;
-    background: (color: number) => void;
-    stroke: (color: number) => void;
-    fill: (r: number, g: number, b: number) => void;
-    line: (x1: number, y1: number, x2: number, y2: number) => void;
-    square: (x: number, y: number, size: number) => void;
-    textSize: (size: number) => void;
-    text: (text: string, x: number, y: number) => void;
-    noLoop: () => void;
-    loop: () => void;
-    frameRate: (rate: number) => void;
-    width: number;
-    height: number;
-    keyCode: number;
-}
-
-// Game state and variables
-let snakeX: number[] = [5, 4, 3, 2, 1];
-let snakeY: number[] = [1, 1, 1, 1, 1];
-let direction: string = "r";
-let appleCaught: boolean = true;
-let appleX: number = 0;
-let appleY: number = 0;
-let score: number = 0;
-let isDead: boolean = false;
-let width1: number = 0;
-let height1: number = 0;
-let lastDirection: string = "r";
-let lastActualDirection: string = "d";
-let taken: boolean = true;
-
-let grid: number[][] = [];
-let usefulGrid: PF.Grid;
-const finder: PF.AStarFinder = new PF.AStarFinder();
-let path: number[][] | null;
-
-const Snake: React.FC = () => {
-    const [isBrowser, setIsBrowser] = useState(false);
-
-    useEffect(() => {
-        setIsBrowser(true);
-        // Initialize dimensions based on browser window
-        width1 = Math.floor((document.getElementById("app")?.parentElement?.clientWidth ?? 10) / 20);
-        height1 = Math.floor((document.getElementById("app")?.parentElement?.clientHeight ?? 15) / 20);
-
-        // Initialize grid
-        initializeGrid();
-    }, []);
-
-    // Initialize the grid
-    const initializeGrid = (): void => {
-        grid = [];
-        for (let y = 0; y < height1; y++) {
-            grid.push([]);
-            for (let x = 0; x < width1; x++) {
-                grid[y].push(0);
-            }
-        }
-    };
-
-    const setup = (p5: P5Instance, canvasParentRef: Element) => {
-        p5.createCanvas(width1 * 20, height1 * 20).parent(canvasParentRef);
-    };
-
-    const draw = (p5: P5Instance) => {
-        p5.background(220);
-
-        // Reset grid
-        initializeGrid();
-
-        p5.stroke(0);
-        for (let x = 0; x < p5.width; x += 20) {
-            p5.line(x, 0, x, p5.height);
-        }
-        for (let y = 0; y < p5.height; y += 20) {
-            p5.line(0, y, p5.width, y);
-        }
-
-        if (snakeX[0] === appleX && snakeY[0] === appleY) {
-            appleCaught = true;
-            taken = true;
-            score++;
-            snakeX.push(snakeX[snakeX.length - 1]);
-            snakeY.push(snakeY[snakeY.length - 1]);
-        }
-
-        p5.fill(255, 0, 0);
-        p5.square(snakeX[0] * 20, snakeY[0] * 20, 20);
-        for (let x = 1; x < snakeX.length; x++) {
-            p5.square(snakeX[x] * 20, snakeY[x] * 20, 20);
-            grid[snakeY[x]][snakeX[x]] = 1;
-        }
-
-        p5.fill(0, 255, 0);
-        if (appleCaught) {
-            while (taken) {
-                appleX = Math.floor(Math.random() * (width1 - 4)) + 2;
-                appleY = Math.floor(Math.random() * (height1 - 4)) + 2;
-                if (grid[appleY][appleX] === 1) {
-                    // Position already taken, try again
-                }
-                else {
-                    usefulGrid = new PF.Grid(grid);
-                    path = finder.findPath(snakeX[0], snakeY[0], appleX, appleY, usefulGrid);
-                    if (path.length > 2) {
-                        taken = false;
-                    }
-                }
-            }
-            appleCaught = false;
-        }
-        p5.square(appleX * 20, appleY * 20, 20);
-
-        if (snakeX[0] < 0 || snakeX[0] >= width1 || snakeY[0] < 0 || snakeY[0] >= height1) {
-            isDead = true;
-            p5.noLoop();
-        }
-
-        for (let i = 1; i < snakeX.length; i++) {
-            if (snakeX[i] === snakeX[0] && snakeY[i] === snakeY[0]) {
-                isDead = true;
-                p5.noLoop();
-            }
-        }
-
-        p5.fill(0, 0, 255);
-        p5.textSize(32);
-        p5.text("Score " + score, 20, 40);
-
-        // Implementing pathfinding library
-        usefulGrid = new PF.Grid(grid);
-        path = finder.findPath(snakeX[0], snakeY[0], appleX, appleY, usefulGrid);
-
-        checkDirection();
-        checkForWallCollision();
-        checkForBodyCollision();
-        moveSnake(path);
-
-        if (isDead) {
-            p5.fill(255, 255, 0);
-            p5.textSize(20);
-            p5.text("You died, hit space to play again", 150, 300);
-            console.log(direction);
-            console.log(lastDirection);
-            console.log(lastActualDirection);
-            reset();
-        }
-
-        p5.frameRate(60);
-
-        if (p5.keyCode === 32) { // Space key
-            if (isDead) {
-                isDead = false;
-                p5.loop();
-            }
-        }
-    };
-
-    // If not in browser, don"t render the sketch
-    if (!isBrowser) {
-        return (
-            <div>
-                <div className="App">
-                    <p>Loading...</p>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div>
-            <div className="App">
-                <Sketch setup={setup} draw={draw} />
-            </div>
-        </div>
-    );
-};
-
-function moveSnake(path: number[][] | null): void {
-    for (let i = snakeX.length - 1; i > 0; i--) {
-        snakeX[i] = snakeX[i - 1];
-    }
-    for (let i = snakeY.length - 1; i > 0; i--) {
-        snakeY[i] = snakeY[i - 1];
-    }
-
-    if (path === null || path.length < 2) {
-        if (direction === "r") {
-            snakeX[0] = snakeX[0] + 1;
-        }
-        else if (direction === "l") {
-            snakeX[0] = snakeX[0] - 1;
-        }
-        else if (direction === "u") {
-            snakeY[0] = snakeY[0] - 1;
-        }
-        else if (direction === "d") {
-            snakeY[0] = snakeY[0] + 1;
-        }
-    }
-    else {
-        snakeX[0] = path[1][0];
-        snakeY[0] = path[1][1];
-    }
-}
-
-function reset(): void {
-    snakeX = [5, 4, 3, 2, 1];
-    snakeY = [1, 1, 1, 1, 1];
-    direction = "r";
-    appleCaught = true;
-    appleX = 0;
-    appleY = 0;
-    score = 0;
-}
-
-function checkDirection(): void {
-    if (snakeX[0] < appleX) {
-        if (direction !== "l") {
-            lastDirection = direction;
-            direction = "r";
-        }
-    }
-    else if (snakeX[0] > appleX) {
-        if (direction !== "r") {
-            lastDirection = direction;
-            direction = "l";
-        }
-    }
-    else if (snakeY[0] < appleY) {
-        if (direction !== "u") {
-            lastDirection = direction;
-            direction = "d";
-        }
-    }
-    else if (snakeY[0] > appleY) {
-        if (direction !== "d") {
-            lastDirection = direction;
-            direction = "u";
-        }
-    }
-    if (lastDirection !== direction) {
-        lastActualDirection = lastDirection;
-    }
-}
-
-function checkForWallCollision(): void {
-    if (direction === "r") {
-        if (snakeX[0] + 1 >= width1) {
-            lastDirection = direction;
-            if (snakeY[0] + 1 >= height1) {
-                direction = "u";
-            }
-            else if (snakeY[0] - 1 < 0) {
-                direction = "d";
-            }
-            else {
-                direction = lastActualDirection;
-            }
-        }
-    }
-    if (direction === "l") {
-        if (snakeX[0] - 1 < 0) {
-            lastDirection = direction;
-            if (snakeY[0] + 1 >= height1) {
-                direction = "u";
-            }
-            else if (snakeY[0] - 1 < 0) {
-                direction = "d";
-            }
-            else {
-                direction = lastActualDirection;
-            }
-        }
-    }
-    if (direction === "u") {
-        if (snakeY[0] - 1 < 0) {
-            lastDirection = direction;
-            if (snakeX[0] + 1 >= width1) {
-                direction = "l";
-            }
-            else if (snakeX[0] - 1 < 0) {
-                direction = "r";
-            }
-            else {
-                direction = lastActualDirection;
-            }
-        }
-    }
-    if (direction === "d") {
-        if (snakeY[0] + 1 >= height1) {
-            lastDirection = direction;
-            if (snakeX[0] + 1 >= width1) {
-                direction = "l";
-            }
-            else if (snakeX[0] - 1 < 0) {
-                direction = "r";
-            }
-            else {
-                direction = lastActualDirection;
-            }
-        }
-    }
-    if (lastDirection !== direction) {
-        lastActualDirection = lastDirection;
-    }
-}
-
-function checkForBodyCollision(): void {
-    for (let i = 0; i < snakeX.length; i++) {
-        if (direction === "r") {
-            if (snakeX[0] + 1 === snakeX[i] && snakeY[0] === snakeY[i]) {
-                lastDirection = direction;
-                if (snakeY[0] + 1 === snakeY[i] && snakeX[0] === snakeX[i]) {
-                    direction = "u";
-                }
-                else if (snakeY[0] - 1 === snakeY[i] && snakeX[0] === snakeX[i]) {
-                    direction = "d";
-                }
-                else {
-                    direction = lastActualDirection;
-                }
-            }
-        }
-        if (direction === "l") {
-            if (snakeX[0] - 1 === snakeX[i] && snakeY[0] === snakeY[i]) {
-                lastDirection = direction;
-                if (snakeY[0] + 1 === snakeY[i] && snakeX[0] === snakeX[i]) {
-                    direction = "u";
-                }
-                else if (snakeY[0] - 1 === snakeY[i] && snakeX[0] === snakeX[i]) {
-                    direction = "d";
-                }
-                else {
-                    direction = lastActualDirection;
-                }
-            }
-        }
-        if (direction === "u") {
-            if (snakeY[0] - 1 === snakeY[i] && snakeX[0] === snakeX[i]) {
-                lastDirection = direction;
-                if (snakeX[0] + 1 === snakeX[i] && snakeY[0] === snakeY[i]) {
-                    direction = "l";
-                }
-                else if (snakeX[0] - 1 === snakeX[i] && snakeY[0] === snakeY[i]) {
-                    direction = "r";
-                }
-                else {
-                    direction = lastActualDirection;
-                }
-            }
-        }
-        if (direction === "d") {
-            if (snakeY[0] + 1 === snakeY[i] && snakeX[0] === snakeX[i]) {
-                lastDirection = direction;
-                if (snakeX[0] + 1 === snakeX[i] && snakeY[0] === snakeY[i]) {
-                    direction = "l";
-                }
-                else if (snakeX[0] - 1 === snakeX[i] && snakeY[0] === snakeY[i]) {
-                    direction = "r";
-                }
-                else {
-                    direction = lastActualDirection;
-                }
-            }
-        }
-    }
-    if (lastDirection !== direction) {
-        lastActualDirection = lastDirection;
-        checkForWallCollision();
-    }
-}
+export default SnakeAIPage;

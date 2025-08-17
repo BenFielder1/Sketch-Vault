@@ -1,17 +1,16 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 import { useEffect, useRef, useState } from 'react';
-import Head from 'next/head';
-import Link from 'next/link';
+import { usePathname } from "next/navigation";
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import {
-    ArrowLeftIcon,
-    PlayIcon,
-    PauseIcon,
-    ArrowPathIcon,
-    Cog6ToothIcon,
-    PhotoIcon
-} from '@heroicons/react/24/outline';
+
+import SketchHeader from '@/components/sketches/SketchHeader';
+import PauseButton from '@/components/sketches/PauseButton';
+import InfoPanel from '@/components/sketches/InfoPanel';
+
+import { sketchControls } from '@/data/sketchData';
+import Controls from '@/components/sketches/Controls';
 
 interface PlanetData {
     name: string;
@@ -30,9 +29,11 @@ const PlanetarySystemPage = () => {
     const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
     const controlsRef = useRef<OrbitControls | null>(null);
     const animationIdRef = useRef<number | null>(null);
+    const timeRef = useRef<number>(0);
+    const planetsRef = useRef<THREE.Group[]>([]);
+    const orbitLinesRef = useRef<THREE.Line[]>([]);
 
     const [isPlaying, setIsPlaying] = useState(true);
-    const [showControls, setShowControls] = useState(true);
     const [controls, setControls] = useState({
         timeSpeed: 1,
         planetScale: 1,
@@ -42,6 +43,8 @@ const PlanetarySystemPage = () => {
         cameraAutoRotate: false,
         sunIntensity: 1
     });
+
+    const pathname = usePathname();
 
     // Planet configuration
     const planetsData: PlanetData[] = [
@@ -54,9 +57,6 @@ const PlanetarySystemPage = () => {
         { name: 'Uranus', size: 1.6, color: '#4fd0e7', distance: 65, speed: 0.01, tilt: 97.8 },
         { name: 'Neptune', size: 1.5, color: '#4b70dd', distance: 80, speed: 0.006, tilt: 28.3 }
     ];
-
-    const planetsRef = useRef<THREE.Group[]>([]);
-    const orbitLinesRef = useRef<THREE.Line[]>([]);
 
     useEffect(() => {
         if (!mountRef.current) return;
@@ -97,7 +97,7 @@ const PlanetarySystemPage = () => {
         createStarfield(scene);
 
         // Create sun
-        const sun = createSun(scene);
+        createSun(scene);
 
         // Create planets
         createPlanets(scene);
@@ -117,43 +117,6 @@ const PlanetarySystemPage = () => {
         pointLight.shadow.camera.near = 0.1;
         pointLight.shadow.camera.far = 300;
         scene.add(pointLight);
-
-        // Animation loop
-        let time = 0;
-        const animate = () => {
-            if (isPlaying) {
-                time += 0.01 * controls.timeSpeed;
-
-                // Animate planets
-                planetsRef.current.forEach((planetGroup, index) => {
-                    const planet = planetsData[index];
-                    const angle = time * planet.speed * controls.orbitSpeed;
-
-                    planetGroup.position.x = Math.cos(angle) * planet.distance;
-                    planetGroup.position.z = Math.sin(angle) * planet.distance;
-
-                    // Rotate planet on its axis
-                    const planetMesh = planetGroup.children[0] as THREE.Mesh;
-                    if (planetMesh) {
-                        planetMesh.rotation.y += 0.01;
-                    }
-                });
-
-                // Auto-rotate camera if enabled
-                if (controls.cameraAutoRotate) {
-                    orbitControls.autoRotate = true;
-                    orbitControls.autoRotateSpeed = 0.5;
-                } else {
-                    orbitControls.autoRotate = false;
-                }
-            }
-
-            orbitControls.update();
-            renderer.render(scene, camera);
-            animationIdRef.current = requestAnimationFrame(animate);
-        };
-
-        animate();
 
         // Handle resize
         const handleResize = () => {
@@ -177,6 +140,52 @@ const PlanetarySystemPage = () => {
             renderer.dispose();
         };
     }, []);
+
+    useEffect(() => {
+        // let time = 0;
+        const animate = () => {
+            if (isPlaying) {
+                timeRef.current += 0.01 * controls.orbitSpeed;
+
+                // Animate planets
+                planetsRef.current.forEach((planetGroup, index) => {
+                    const planet = planetsData[index];
+                    const angle = timeRef.current * planet.speed;
+
+                    planetGroup.position.x = Math.cos(angle) * planet.distance;
+                    planetGroup.position.z = Math.sin(angle) * planet.distance;
+
+                    // Rotate planet on its axis
+                    const planetMesh = planetGroup.children[0] as THREE.Mesh;
+                    if (planetMesh) {
+                        planetMesh.rotation.y += 0.01;
+                    }
+                });
+
+                if (controlsRef.current) {
+                    if (controls.cameraAutoRotate) {
+                        controlsRef.current.autoRotate = true;
+                        controlsRef.current.autoRotateSpeed = 0.5;
+                    } else {
+                        controlsRef.current.autoRotate = false;
+                    }
+
+                    controlsRef.current.update();
+                }
+            }
+
+
+            if (sceneRef.current && cameraRef.current && rendererRef.current) {
+                rendererRef.current.render(sceneRef.current, cameraRef.current);
+            }
+            animationIdRef.current = requestAnimationFrame(animate);
+        };
+
+        if (animationIdRef.current !== null) {
+            cancelAnimationFrame(animationIdRef.current);
+        }
+        animate();
+    }, [controls.cameraAutoRotate, controls.orbitSpeed, controls.timeSpeed, isPlaying]);
 
     // Update controls effect
     useEffect(() => {
@@ -209,7 +218,7 @@ const PlanetarySystemPage = () => {
                 pointLight.intensity = 2 * controls.sunIntensity;
             }
         }
-    }, [controls]);
+    }, [controls.planetScale, controls.showOrbits, controls.showStars, controls.sunIntensity]);
 
     const createStarfield = (scene: THREE.Scene) => {
         const geometry = new THREE.BufferGeometry();
@@ -234,8 +243,6 @@ const PlanetarySystemPage = () => {
         const sunGeometry = new THREE.SphereGeometry(3, 32, 32);
         const sunMaterial = new THREE.MeshBasicMaterial({
             color: 0xffff00,
-            // emissive: 0xffff00,
-            // emissiveIntensity: 0.3
         });
         const sun = new THREE.Mesh(sunGeometry, sunMaterial);
         scene.add(sun);
@@ -245,7 +252,7 @@ const PlanetarySystemPage = () => {
     const createPlanets = (scene: THREE.Scene) => {
         planetsRef.current = [];
 
-        planetsData.forEach((planet, index) => {
+        planetsData.forEach((planet) => {
             const planetGroup = new THREE.Group();
 
             // Planet geometry and material
@@ -320,224 +327,42 @@ const PlanetarySystemPage = () => {
     };
 
     const saveScreenshot = () => {
-        if (rendererRef.current) {
+        const canvas = document.querySelector('canvas');
+        if (canvas) {
             const link = document.createElement('a');
             link.download = `planetary-system-${Date.now()}.png`;
-            link.href = rendererRef.current.domElement.toDataURL();
+            link.href = canvas.toDataURL();
             link.click();
         }
     };
 
     return (
-        <>
-            {/* <Head>
-                <title>Planetary System - SketchVault</title>
-                <meta name="description" content="Interactive 3D planetary system with orbiting planets" />
-            </Head> */}
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
+            <SketchHeader title="Planetary System" />
 
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
-                {/* Header */}
-                <header className="relative z-20 px-6 py-4 bg-black/20 backdrop-blur-sm">
-                    <div className="max-w-7xl mx-auto flex justify-between items-center">
-                        <Link href="/gallery" className="flex items-center space-x-2 text-white hover:text-purple-300 transition-colors">
-                            <ArrowLeftIcon className="w-5 h-5" />
-                            <span>Back to Gallery</span>
-                        </Link>
-                        <h1 className="text-xl font-bold text-white">Planetary System</h1>
-                        <div className="w-24"></div> {/* Spacer for centering */}
-                    </div>
-                </header>
+            <div className="flex h-full flex-1">
+                <Controls
+                    sliders={sketchControls.filter(s => pathname.includes(s.name))[0].controlSliders}
+                    toggles={sketchControls.filter(s => pathname.includes(s.name))[0].controlToggles}
+                    handleControlChange={handleControlChange}
+                    resetCamera={resetCamera}
+                    saveScreenshot={saveScreenshot}
+                />
 
-                <div className="flex h-full flex-1">
-                    {/* Controls Sidebar */}
-                    <div className={`${showControls ? 'w-80' : 'w-16'} transition-all duration-300 bg-black/40 backdrop-blur-sm border-r border-white/10 flex flex-col`}>
-                        <button
-                            onClick={() => setShowControls(!showControls)}
-                            className="p-4 text-white hover:bg-white/10 transition-colors"
-                        >
-                            <Cog6ToothIcon className="w-6 h-6" />
-                        </button>
+                <div className="flex-1 relative">
+                    <div ref={mountRef} className="w-full h-full" />
 
-                        {showControls && (
-                            <>
-                                <div className="p-4 flex-1 overflow-y-auto">
-                                    <h3 className="text-white font-semibold mb-4">Animation Controls</h3>
+                    <PauseButton isPlaying={isPlaying} setIsPlaying={setIsPlaying} />
 
-                                    <div className="space-y-6">
-                                        <ControlSlider
-                                            label="Time Speed"
-                                            value={controls.timeSpeed}
-                                            min={0}
-                                            max={5}
-                                            step={0.1}
-                                            onChange={(value) => handleControlChange('timeSpeed', value)}
-                                        />
-
-                                        <ControlSlider
-                                            label="Planet Scale"
-                                            value={controls.planetScale}
-                                            min={0.5}
-                                            max={3}
-                                            step={0.1}
-                                            onChange={(value) => handleControlChange('planetScale', value)}
-                                        />
-
-                                        <ControlSlider
-                                            label="Orbit Speed"
-                                            value={controls.orbitSpeed}
-                                            min={0.1}
-                                            max={3}
-                                            step={0.1}
-                                            onChange={(value) => handleControlChange('orbitSpeed', value)}
-                                        />
-
-                                        <ControlSlider
-                                            label="Sun Intensity"
-                                            value={controls.sunIntensity}
-                                            min={0.1}
-                                            max={2}
-                                            step={0.1}
-                                            onChange={(value) => handleControlChange('sunIntensity', value)}
-                                        />
-                                    </div>
-
-                                    <h3 className="text-white font-semibold mb-4 mt-8">Display Options</h3>
-
-                                    <div className="space-y-4">
-                                        <ControlToggle
-                                            label="Show Orbits"
-                                            value={controls.showOrbits}
-                                            onChange={(value) => handleControlChange('showOrbits', value)}
-                                        />
-
-                                        <ControlToggle
-                                            label="Show Stars"
-                                            value={controls.showStars}
-                                            onChange={(value) => handleControlChange('showStars', value)}
-                                        />
-
-                                        <ControlToggle
-                                            label="Auto Rotate Camera"
-                                            value={controls.cameraAutoRotate}
-                                            onChange={(value) => handleControlChange('cameraAutoRotate', value)}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="p-4 border-t border-white/10 space-y-3">
-                                    <button
-                                        onClick={resetCamera}
-                                        className="w-full flex items-center justify-center gap-2 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
-                                    >
-                                        <ArrowPathIcon className="w-4 h-4" />
-                                        Reset Camera
-                                    </button>
-
-                                    <button
-                                        onClick={saveScreenshot}
-                                        className="w-full flex items-center justify-center gap-2 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
-                                    >
-                                        <PhotoIcon className="w-4 h-4" />
-                                        Save Screenshot
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                    </div>
-
-                    {/* 3D Scene */}
-                    <div className="flex-1 relative">
-                        <div ref={mountRef} className="w-full h-full" />
-
-                        {/* Play/Pause Button */}
-                        <div className="absolute top-4 right-4">
-                            <button
-                                onClick={() => setIsPlaying(!isPlaying)}
-                                className={`p-3 rounded-full backdrop-blur-sm transition-all duration-300 ${isPlaying
-                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                    : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                    }`}
-                            >
-                                {isPlaying ? (
-                                    <PauseIcon className="w-6 h-6" />
-                                ) : (
-                                    <PlayIcon className="w-6 h-6" />
-                                )}
-                            </button>
-                        </div>
-
-                        {/* Info Panel */}
-                        <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white max-w-xs">
-                            <h3 className="font-semibold mb-2">Solar System</h3>
-                            <p className="text-sm text-gray-300 mb-2">
-                                Interactive 3D model with {planetsData.length} planets orbiting the sun.
-                            </p>
-                            <p className="text-xs text-gray-400">
-                                Use mouse to orbit, zoom, and pan the camera.
-                                Adjust controls in the sidebar.
-                            </p>
-                        </div>
-                    </div>
+                    <InfoPanel
+                        title="Solar System"
+                        text={`Interactive 3D model with ${planetsData.length} planets orbiting the sun.`}
+                        controls="Use mouse to orbit, zoom, and pan the camera. Adjust controls in the sidebar."
+                    />
                 </div>
             </div>
-        </>
+        </div>
     );
 };
-
-// Control Components
-const ControlSlider = ({
-    label,
-    value,
-    min,
-    max,
-    step,
-    onChange
-}: {
-    label: string;
-    value: number;
-    min: number;
-    max: number;
-    step: number;
-    onChange: (value: number) => void;
-}) => (
-    <div>
-        <label className="block text-gray-300 text-sm font-medium mb-2">
-            {label}: {value.toFixed(1)}
-        </label>
-        <input
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            onChange={(e) => onChange(parseFloat(e.target.value))}
-            className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
-        />
-    </div>
-);
-
-const ControlToggle = ({
-    label,
-    value,
-    onChange
-}: {
-    label: string;
-    value: boolean;
-    onChange: (value: boolean) => void;
-}) => (
-    <div className="flex items-center justify-between">
-        <label className="text-gray-300 text-sm font-medium">{label}</label>
-        <button
-            onClick={() => onChange(!value)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? 'bg-gradient-to-r from-purple-500 to-cyan-500' : 'bg-white/20'
-                }`}
-        >
-            <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${value ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-            />
-        </button>
-    </div>
-);
 
 export default PlanetarySystemPage;

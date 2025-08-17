@@ -1,126 +1,28 @@
 "use client"
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
-import Link from 'next/link';
 import Image from 'next/image';
 import {
-    FunnelIcon,
     MagnifyingGlassIcon,
     PlayIcon,
-    EyeIcon,
-    HeartIcon,
     ShareIcon,
     XMarkIcon
 } from '@heroicons/react/24/outline';
-import { HeartIcon as HeartSolidIcon, PlayIcon as PlayIconSolid } from '@heroicons/react/24/solid';
 
-interface Sketch {
-    id: number;
-    title: string;
-    description: string;
-    types: ('3d' | 'generative' | 'interactive' | "2d")[];
-    tags: string[];
-    thumbnail: string;
-    link: string;
-    isLiked: boolean;
-    likes: number;
-    views: number;
-    createdAt: string;
-}
+import { ISketch } from '@/types/sketch';
+import { sketchData } from '@/data/sketchData';
+import Header from '@/components/Header';
 
 const GalleryPage = () => {
-    const [sketches, setSketches] = useState<Sketch[]>([]);
-    const [filteredSketches, setFilteredSketches] = useState<Sketch[]>([]);
+    const [sketches, setSketches] = useState<ISketch[]>([]);
+    const [filteredSketches, setFilteredSketches] = useState<ISketch[]>([]);
     const [selectedFilter, setSelectedFilter] = useState<'all' | '3d' | 'generative' | 'interactive'>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedSketch, setSelectedSketch] = useState<Sketch | null>(null);
+    const [selectedSketch, setSelectedSketch] = useState<ISketch | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Mock data - replace with your actual data
-    const mockSketches: Sketch[] = [
-        {
-            id: 1,
-            title: "Planetary System",
-            description: "Interactive 3D model of the solar system with 8 planets orbiting the sun.",
-            types: ["interactive", "3d"],
-            tags: ["space", "interactive", "three.js", "planets", "orbit"],
-            thumbnail: "/sketches/planets2.png",
-            link: "/sketches/planets",
-            isLiked: false,
-            likes: 124,
-            views: 1502,
-            createdAt: "2024-01-15"
-        },
-        {
-            id: 2,
-            title: "Snake AI",
-            description: "Uses an A* routing algorithm to find the shortest path to the food.",
-            types: ["2d"],
-            tags: ["p5.js", "AI", "snake", "routing", "game"],
-            thumbnail: "/sketches/snake.png",
-            link: "/sketches/snake",
-            isLiked: true,
-            likes: 89,
-            views: 934,
-            createdAt: "2024-01-12"
-        },
-        // {
-        //     id: 3,
-        //     title: "Fractal Explorer",
-        //     description: "Navigate through infinite fractal patterns with real-time zooming and color transformations.",
-        //     types: ["generative"],
-        //     tags: ["fractals", "generative", "math", "infinite"],
-        //     thumbnail: "/sketches/planets.png",
-        //     link: "",
-        //     isLiked: false,
-        //     likes: 156,
-        //     views: 2103,
-        //     createdAt: "2024-01-10"
-        // },
-        // {
-        //     id: 4,
-        //     title: "Fluid Dynamics",
-        //     description: "Real-time fluid simulation with customizable parameters and interactive obstacles.",
-        //     types: ["interactive"],
-        //     tags: ["fluid", "physics", "simulation", "interactive"],
-        //     thumbnail: "/sketches/planets.png",
-        //     link: "",
-        //     isLiked: false,
-        //     likes: 203,
-        //     views: 1834,
-        //     createdAt: "2024-01-08"
-        // },
-        // {
-        //     id: 5,
-        //     title: "Crystal Growth",
-        //     description: "Watch crystals grow in 3D space with physically-based rendering and organic patterns.",
-        //     types: ["3d"],
-        //     tags: ["3d", "growth", "organic", "crystals"],
-        //     thumbnail: "/sketches/planets.png",
-        //     link: "",
-        //     isLiked: true,
-        //     likes: 178,
-        //     views: 1456,
-        //     createdAt: "2024-01-05"
-        // },
-        // {
-        //     id: 6,
-        //     title: "Neural Network Visualization",
-        //     description: "Interactive visualization of neural network training with real-time weight updates.",
-        //     types: ["generative"],
-        //     tags: ["ai", "neural", "visualization", "data"],
-        //     thumbnail: "/sketches/planets.png",
-        //     link: "",
-        //     isLiked: false,
-        //     likes: 267,
-        //     views: 3102,
-        //     createdAt: "2024-01-03"
-        // }
-    ];
-
     useEffect(() => {
-        setSketches(mockSketches);
-        setFilteredSketches(mockSketches);
+        setSketches(sketchData);
+        setFilteredSketches(sketchData);
         setIsLoaded(true);
     }, []);
 
@@ -141,18 +43,6 @@ const GalleryPage = () => {
         setFilteredSketches(filtered);
     }, [selectedFilter, searchQuery, sketches]);
 
-    const toggleLike = (sketchId: number) => {
-        setSketches(prev => prev.map(sketch =>
-            sketch.id === sketchId
-                ? {
-                    ...sketch,
-                    isLiked: !sketch.isLiked,
-                    likes: sketch.isLiked ? sketch.likes - 1 : sketch.likes + 1
-                }
-                : sketch
-        ));
-    };
-
     const filterButtons = [
         { key: 'all', label: 'All Sketches' },
         { key: '3d', label: '3D Art' },
@@ -163,32 +53,8 @@ const GalleryPage = () => {
 
     return (
         <>
-            {/* <Head>
-                <title>Gallery - SketchVault</title>
-                <meta name="description" content="Explore our collection of interactive digital sketches and generative art" />
-            </Head> */}
-
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-                {/* Header */}
-                <header className="relative z-10 px-6 py-8">
-                    <div className="max-w-7xl mx-auto flex justify-between items-center">
-                        <Link href="/" className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-lg"></div>
-                            <span className="text-white font-bold text-xl">SketchVault</span>
-                        </Link>
-                        <nav className="hidden md:flex items-center space-x-8">
-                            <Link href="/" className="text-gray-300 hover:text-white transition-colors">
-                                Home
-                            </Link>
-                            <Link href="/gallery" className="text-white font-semibold">
-                                Gallery
-                            </Link>
-                            <Link href="/live-sketch" className="text-gray-300 hover:text-white transition-colors">
-                                Live Sketch
-                            </Link>
-                        </nav>
-                    </div>
-                </header>
+                <Header />
 
                 {/* Main Content */}
                 <main className="relative z-10 px-6 pb-20">
@@ -198,9 +64,6 @@ const GalleryPage = () => {
                             <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
                                 Sketch Gallery
                             </h1>
-                            {/* <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-                                Discover interactive digital art and generative sketches
-                            </p> */}
                         </div>
 
                         {/* Search and Filters */}
@@ -243,7 +106,6 @@ const GalleryPage = () => {
                                 <SketchCard
                                     key={sketch.id}
                                     sketch={sketch}
-                                    onLike={() => toggleLike(sketch.id)}
                                     onView={() => setSelectedSketch(sketch)}
                                     delay={index * 100}
                                 />
@@ -263,7 +125,6 @@ const GalleryPage = () => {
                     <SketchModal
                         sketch={selectedSketch}
                         onClose={() => setSelectedSketch(null)}
-                        onLike={() => toggleLike(selectedSketch.id)}
                     />
                 )}
             </div>
@@ -274,12 +135,10 @@ const GalleryPage = () => {
 // Sketch Card Component
 const SketchCard = ({
     sketch,
-    onLike,
     onView,
     delay
 }: {
-    sketch: Sketch;
-    onLike: () => void;
+    sketch: ISketch;
     onView: () => void;
     delay: number;
 }) => {
@@ -303,13 +162,8 @@ const SketchCard = ({
                         alt={sketch.title}
                         fill
                         style={{ objectFit: "cover" }}
-                    // className="transition-transform duration-300 group-hover:scale-110"
                     />
                 </div>
-
-                {/* <div className="absolute inset-0 flex items-center justify-center">
-                    <PlayIconSolid className="w-16 h-16 text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110" />
-                </div> */}
 
                 {/* Type Badge */}
                 <div className="absolute top-4 left-4">
@@ -325,16 +179,6 @@ const SketchCard = ({
 
                 {/* Action Buttons */}
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                    {/* <button
-                        onClick={(e) => { e.stopPropagation(); onLike(); }}
-                        className="p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
-                    >
-                        {sketch.isLiked ? (
-                            <HeartSolidIcon className="w-4 h-4 text-red-500" />
-                        ) : (
-                            <HeartIcon className="w-4 h-4 text-white" />
-                        )}
-                    </button> */}
                     <button className="p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors">
                         <ShareIcon className="w-4 h-4 text-white" />
                     </button>
@@ -375,11 +219,9 @@ const SketchCard = ({
 const SketchModal = ({
     sketch,
     onClose,
-    onLike
 }: {
-    sketch: Sketch;
+    sketch: ISketch;
     onClose: () => void;
-    onLike: () => void;
 }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
