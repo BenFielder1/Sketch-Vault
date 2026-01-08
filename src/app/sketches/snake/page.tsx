@@ -93,12 +93,13 @@ const SnakeAIPage = () => {
     const draw = (p5: p5) => {
         const gameState = gameStateRef.current;
 
-        p5.background(20, 20, 30);
+        // Dark background matching our theme
+        p5.background(10, 10, 10);
 
         initializeGrid();
 
         if (controls.showGrid) {
-            p5.stroke(100, 100, 120);
+            p5.stroke(30, 30, 30);
             for (let x = 0; x < p5.width; x += 20) {
                 p5.line(x, 0, x, p5.height);
             }
@@ -115,11 +116,15 @@ const SnakeAIPage = () => {
             gameState.snakeY.push(gameState.snakeY[gameState.snakeY.length - 1]);
         }
 
-        p5.fill(255, 0, 0);
-        p5.square(gameState.snakeX[0] * 20, gameState.snakeY[0] * 20, 20);
+        // Snake head - using our primary amber color
+        p5.fill(245, 158, 11);
+        p5.noStroke();
+        p5.rect(gameState.snakeX[0] * 20 + 1, gameState.snakeY[0] * 20 + 1, 18, 18, 4);
 
+        // Snake body - slightly darker amber
+        p5.fill(217, 119, 6);
         for (let x = 1; x < gameState.snakeX.length; x++) {
-            p5.square(gameState.snakeX[x] * 20, gameState.snakeY[x] * 20, 20);
+            p5.rect(gameState.snakeX[x] * 20 + 1, gameState.snakeY[x] * 20 + 1, 18, 18, 4);
             gameState.grid[gameState.snakeY[x]][gameState.snakeX[x]] = 1;
         }
 
@@ -144,12 +149,14 @@ const SnakeAIPage = () => {
             gameState.appleCaught = false;
         }
 
-        p5.fill(0, 255, 0);
-        p5.square(gameState.appleX * 20, gameState.appleY * 20, 20);
+        // Apple - using our accent teal color
+        p5.fill(20, 184, 166);
+        p5.rect(gameState.appleX * 20 + 1, gameState.appleY * 20 + 1, 18, 18, 4);
 
-        // Draw path if enabled
+        // Draw path if enabled - using rose color
         if (controls.showPath && gameState.path) {
-            p5.stroke(255, 255, 0);
+            p5.stroke(244, 63, 94);
+            p5.strokeWeight(2);
             for (let i = 0; i < gameState.path.length - 1; i++) {
                 const x1 = gameState.path[i][0] * 20 + 10;
                 const y1 = gameState.path[i][1] * 20 + 10;
@@ -157,7 +164,8 @@ const SnakeAIPage = () => {
                 const y2 = gameState.path[i + 1][1] * 20 + 10;
                 p5.line(x1, y1, x2, y2);
             }
-            p5.stroke(0, 0, 0);
+            p5.strokeWeight(1);
+            p5.noStroke();
         }
 
         // Check wall collision
@@ -174,18 +182,21 @@ const SnakeAIPage = () => {
         }
 
         // Draw score
-        p5.fill(255, 255, 255);
-        p5.textSize(24);
-        p5.text("Score: " + gameState.score, 20, 30);
+        p5.fill(250, 250, 249);
+        p5.textSize(16);
+        p5.textFont('DM Sans');
+        p5.text("Score: " + gameState.score, 16, 28);
 
         // Handle game over
         if (gameState.isDead) {
             if (controls.autoRestart) {
                 resetGame();
             } else {
-                p5.fill(255, 255, 0);
-                p5.textSize(20);
-                p5.text("Game Over - Click Reset or Press Space", gameState.width1 * 10 - 180, gameState.height1 * 10);
+                p5.fill(245, 158, 11);
+                p5.textSize(18);
+                p5.textAlign(p5.CENTER);
+                p5.text("Game Over - Press Space to Restart", gameState.width1 * 10, gameState.height1 * 10);
+                p5.textAlign(p5.LEFT);
                 // Don't continue game logic when dead
                 return;
             }
@@ -425,35 +436,33 @@ const SnakeAIPage = () => {
     };
 
     return (
-        <>
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
-                <SketchHeader title="Snake AI" />
+        <div className="min-h-screen bg-[var(--color-bg-primary)] flex flex-col">
+            <SketchHeader title="Snake AI" />
 
-                <div className="flex h-full flex-1">
-                    <Controls
-                        sliders={sketchControls.filter(s => pathname.includes(s.name))[0].controlSliders}
-                        toggles={sketchControls.filter(s => pathname.includes(s.name))[0].controlToggles}
-                        handleControlChange={handleControlChange}
-                        resetGame={resetGame}
-                        saveScreenshot={saveScreenshot}
-                    />
+            <div className="flex h-full flex-1">
+                <Controls
+                    sliders={sketchControls.filter(s => pathname.includes(s.name))[0].controlSliders}
+                    toggles={sketchControls.filter(s => pathname.includes(s.name))[0].controlToggles}
+                    handleControlChange={handleControlChange}
+                    resetGame={resetGame}
+                    saveScreenshot={saveScreenshot}
+                />
 
-                    <div className="flex-1 relative">
-                        <div className="w-full h-full">
-                            <Sketch setup={setup} draw={draw} keyPressed={keyPressed} />
-                        </div>
-
-                        <PauseButton isPlaying={isPlaying} setIsPlaying={setIsPlaying} />
-
-                        <InfoPanel
-                            title="Snake AI"
-                            text="This snake uses an A* pathfinding algorithm to find the optimal route to food. The AI continuously recalculates its path to navigate around obstacles efficiently."
-                            controls="Press Space: Restart game"
-                        />
+                <div className="flex-1 relative">
+                    <div className="w-full h-full">
+                        <Sketch setup={setup} draw={draw} keyPressed={keyPressed} />
                     </div>
+
+                    <PauseButton isPlaying={isPlaying} setIsPlaying={setIsPlaying} />
+
+                    <InfoPanel
+                        title="Snake AI"
+                        text="This snake uses an A* pathfinding algorithm to find the optimal route to food."
+                        controls="Press Space to restart game"
+                    />
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 

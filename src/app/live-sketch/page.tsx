@@ -8,9 +8,8 @@ import {
     ArrowPathIcon,
     Cog6ToothIcon,
     PhotoIcon,
-    PaintBrushIcon,
-    SparklesIcon,
-    CubeIcon
+    ChevronLeftIcon,
+    ChevronRightIcon,
 } from '@heroicons/react/24/outline';
 import Header from '@/components/Header';
 
@@ -28,36 +27,57 @@ const LiveSketchPage = () => {
         {
             id: 'particles',
             name: 'Particle System',
-            description: 'Interactive particle system with physics',
-            icon: <SparklesIcon className="w-5 h-5" />,
+            description: 'Interactive particle physics',
+            icon: (
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
+                </svg>
+            ),
+            color: 'var(--color-primary)',
             controls: {
-                particleCount: { min: 50, max: 500, default: 200 },
-                speed: { min: 0.1, max: 5, default: 1 },
-                size: { min: 1, max: 10, default: 3 }
+                particleCount: { min: 50, max: 500, default: 200, label: 'Particle Count' },
+                speed: { min: 0.1, max: 5, default: 1, label: 'Speed' },
+                size: { min: 1, max: 10, default: 3, label: 'Size' }
             }
         },
         {
             id: 'waves',
             name: 'Wave Function',
-            description: 'Sine wave visualization with harmonics',
-            icon: <PaintBrushIcon className="w-5 h-5" />,
+            description: 'Sine wave harmonics',
+            icon: (
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 12c1.5-3 3-6 5-6s3.5 6 5 6 3.5-6 5-6 3.5 3 5 6" />
+                </svg>
+            ),
+            color: 'var(--color-accent)',
             controls: {
-                frequency: { min: 0.1, max: 5, default: 1 },
-                amplitude: { min: 10, max: 200, default: 100 },
-                phase: { min: 0, max: 6.28, default: 0 },
-                harmonics: { min: 1, max: 10, default: 3 }
+                frequency: { min: 0.1, max: 5, default: 1, label: 'Frequency' },
+                amplitude: { min: 10, max: 200, default: 100, label: 'Amplitude' },
+                phase: { min: 0, max: 6.28, default: 0, label: 'Phase' },
+                harmonics: { min: 1, max: 10, default: 3, label: 'Harmonics' }
             }
         },
         {
             id: 'fractal',
             name: 'Fractal Tree',
-            description: 'Recursive fractal tree generation',
-            icon: <CubeIcon className="w-5 h-5" />,
+            description: 'Recursive branching',
+            icon: (
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22v-8" />
+                    <path d="M12 14l-4-4" />
+                    <path d="M12 14l4-4" />
+                    <path d="M8 10l-2-2" />
+                    <path d="M8 10l2-2" />
+                    <path d="M16 10l-2-2" />
+                    <path d="M16 10l2-2" />
+                </svg>
+            ),
+            color: 'var(--color-rose)',
             controls: {
-                iterations: { min: 3, max: 10, default: 6 }, // Reduced max to prevent performance issues
-                angle: { min: 0.1, max: 1.2, default: 0.4 },
-                length: { min: 0.6, max: 0.85, default: 0.75 },
-                branches: { min: 2, max: 4, default: 2 }, // Reduced max branches
+                iterations: { min: 3, max: 10, default: 6, label: 'Iterations' },
+                angle: { min: 0.1, max: 1.2, default: 0.4, label: 'Angle' },
+                length: { min: 0.6, max: 0.85, default: 0.75, label: 'Length Ratio' },
+                branches: { min: 2, max: 4, default: 2, label: 'Branches' },
             }
         }
     ];
@@ -76,7 +96,6 @@ const LiveSketchPage = () => {
     const currentSketch = sketches.find(s => s.id === selectedSketch);
 
     useEffect(() => {
-        // Initialize canvas and start animation loop when playing
         if (isPlaying && canvasRef.current) {
             const canvas = canvasRef.current;
             const ctx = canvas.getContext('2d');
@@ -88,11 +107,9 @@ const LiveSketchPage = () => {
             let animationId: number;
 
             const animate = () => {
-                // Clear canvas
-                ctx.fillStyle = 'rgba(15, 23, 42, 0.1)';
+                ctx.fillStyle = 'rgba(10, 10, 10, 0.1)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                // Simple animation based on selected sketch
                 renderSketch(ctx, canvas.width, canvas.height);
 
                 if (isPlaying) {
@@ -129,7 +146,7 @@ const LiveSketchPage = () => {
     };
 
     const renderParticles = (ctx: CanvasRenderingContext2D, width: number, height: number, controls: any) => {
-        ctx.fillStyle = '#8b5cf6';
+        ctx.fillStyle = '#F59E0B';
 
         for (let i = 0; i < controls.particleCount; i++) {
             const x = (Math.sin(timeRef.current * controls.speed + i) * width / 4) + width / 2;
@@ -141,7 +158,7 @@ const LiveSketchPage = () => {
     };
 
     const renderWaves = (ctx: CanvasRenderingContext2D, width: number, height: number, controls: any) => {
-        ctx.strokeStyle = '#06b6d4';
+        ctx.strokeStyle = '#14B8A6';
         ctx.lineWidth = 2;
         ctx.beginPath();
 
@@ -157,10 +174,9 @@ const LiveSketchPage = () => {
     };
 
     const renderFractal = (ctx: CanvasRenderingContext2D, width: number, height: number, controls: any) => {
-        ctx.strokeStyle = '#10b981';
+        ctx.strokeStyle = '#F43F5E';
         ctx.lineWidth = 2;
 
-        // Use iterative approach instead of recursion to prevent stack overflow
         interface Branch {
             x1: number;
             y1: number;
@@ -170,18 +186,17 @@ const LiveSketchPage = () => {
             generation: number;
         }
 
-        // Start with the trunk
         const initialBranch: Branch = {
             x1: width / 2,
             y1: height - 50,
             x2: width / 2,
             y2: height - 150,
-            depth: Math.min(controls.iterations, 10), // Cap iterations to prevent performance issues
+            depth: Math.min(controls.iterations, 10),
             generation: 0
         };
 
         let branches: Branch[] = [initialBranch];
-        const maxBranches = 5000; // Prevent too many branches
+        const maxBranches = 5000;
         let totalBranches = 0;
 
         while (branches.length > 0 && totalBranches < maxBranches) {
@@ -189,7 +204,6 @@ const LiveSketchPage = () => {
             branches = [];
 
             for (const branch of currentBranches) {
-                // Draw the current branch
                 ctx.beginPath();
                 ctx.moveTo(branch.x1, branch.y1);
                 ctx.lineTo(branch.x2, branch.y2);
@@ -197,18 +211,15 @@ const LiveSketchPage = () => {
 
                 totalBranches++;
 
-                // Generate new branches if depth > 0
                 if (branch.depth > 0) {
                     const angle = Math.atan2(branch.y2 - branch.y1, branch.x2 - branch.x1);
                     const currentLength = Math.sqrt((branch.x2 - branch.x1) ** 2 + (branch.y2 - branch.y1) ** 2);
                     const newLength = currentLength * controls.length;
 
-                    // Only create new branches if they're large enough to be visible
                     if (newLength > 3) {
-                        const numBranches = Math.min(controls.branches, 4); // Cap branches per node
+                        const numBranches = Math.min(controls.branches, 4);
 
                         for (let i = 0; i < numBranches; i++) {
-                            // Add some randomness based on time for organic feel
                             const timeOffset = timeRef.current * 0.1 + branch.generation * 0.3;
                             const angleVariation = Math.sin(timeOffset + i) * 0.1;
 
@@ -267,155 +278,206 @@ const LiveSketchPage = () => {
     };
 
     return (
-        <>
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
-                <Header />
+        <div className="min-h-screen bg-[var(--color-bg-primary)] flex flex-col">
+            <Header />
 
-                <div className="flex h-full flex-1">
-                    {/* Sidebar */}
-                    <div className={`${showControls ? 'w-80' : 'w-16'} transition-all duration-300 bg-black/40 backdrop-blur-sm border-r border-white/10 flex flex-col`}>
-                        {/* Toggle Button */}
-                        <button
-                            onClick={() => setShowControls(!showControls)}
-                            className="p-4 text-white hover:bg-white/10 transition-colors"
-                        >
-                            <Cog6ToothIcon className="w-6 h-6" />
-                        </button>
-
-                        {showControls && (
-                            <>
-                                {/* Sketch Selection */}
-                                <div className="p-4 border-b border-white/10">
-                                    <h3 className="text-white font-semibold mb-3">Sketch Type</h3>
-                                    <div className="space-y-2">
-                                        {sketches.map((sketch) => (
-                                            <button
-                                                key={sketch.id}
-                                                onClick={() => setSelectedSketch(sketch.id)
-                                                }
-                                                className={`w-full p-3 rounded-lg text-left transition-all duration-200 flex items-center gap-3 ${selectedSketch === sketch.id
-                                                    ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white'
-                                                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                                                    }`}
-                                            >
-                                                {sketch.icon}
-                                                <div>
-                                                    <div className="font-medium">{sketch.name}</div>
-                                                    <div className="text-xs opacity-75">{sketch.description}</div>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Controls */}
-                                {currentSketch && (
-                                    <div className="p-4 flex-1 overflow-y-auto">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-white font-semibold">Controls</h3>
-                                            <button
-                                                onClick={resetSketch}
-                                                className="text-gray-400 hover:text-white transition-colors"
-                                            >
-                                                <ArrowPathIcon className="w-4 h-4" />
-                                            </button>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            {Object.entries(currentSketch.controls).map(([controlName, config]) => (
-                                                <div key={controlName}>
-                                                    <label className="block text-gray-300 text-sm font-medium mb-2 capitalize">
-                                                        {controlName}: {controls[selectedSketch][controlName].toFixed(2)}
-                                                    </label>
-                                                    <input
-                                                        type="range"
-                                                        min={config.min}
-                                                        max={config.max}
-                                                        step={(config.max - config.min) / 100}
-                                                        value={controls[selectedSketch][controlName]}
-                                                        onChange={(e) => handleControlChange(controlName, parseFloat(e.target.value))}
-                                                        className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Action Buttons */}
-                                <div className="p-4 border-t border-white/10 space-y-3">
-                                    <button
-                                        onClick={saveScreenshot}
-                                        className="w-full flex items-center justify-center gap-2 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
-                                    >
-                                        <PhotoIcon className="w-4 h-4" />
-                                        Save Image
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                    </div>
-
-                    {/* Canvas Area */}
-                    <div className="flex-1 relative">
-                        {/* Canvas */}
-                        <canvas
-                            ref={canvasRef}
-                            className="w-full h-full bg-slate-900 cursor-crosshair"
-                            style={{ touchAction: 'none' }}
-                        />
-
-                        {/* Overlay Controls */}
-                        <div className="absolute top-4 right-4 flex gap-2">
-                            <button
-                                onClick={() => setIsPlaying(!isPlaying)}
-                                className={`p-3 rounded-full backdrop-blur-sm transition-all duration-300 ${isPlaying
-                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                    : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                    }`}
-                            >
-                                {isPlaying ? (
-                                    <PauseIcon className="w-6 h-6" />
-                                ) : (
-                                    <PlayIcon className="w-6 h-6" />
-                                )}
-                            </button>
+            <div className="flex-1 flex pt-16">
+                {/* Sidebar */}
+                <div 
+                    className={`${showControls ? 'w-80' : 'w-0'} transition-all duration-300 bg-[var(--color-bg-secondary)] border-r border-[var(--color-border)] flex flex-col overflow-hidden`}
+                >
+                    <div className={`w-80 flex flex-col h-full ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
+                        {/* Sidebar Header */}
+                        <div className="p-4 border-b border-[var(--color-border)]">
+                            <h2 className="text-lg font-bold text-[var(--color-text-primary)]">Controls</h2>
                         </div>
 
-                        {/* Info Overlay */}
-                        {!isStarted && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                                <div className="text-center text-white">
-                                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center">
-                                        <PlayIcon className="w-12 h-12" />
-                                    </div>
-                                    <h2 className="text-2xl font-bold mb-2">Ready to Create</h2>
-                                    <p className="text-gray-300 mb-6 max-w-md">
-                                        Press play to start the live sketch. Adjust controls in the sidebar to modify the artwork in real-time.
-                                    </p>
-                                    <div className="flex gap-4 justify-center">
-                                        <button
-                                            onClick={() => {setIsPlaying(true); setIsStarted(true)}}
-                                            className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
+                        {/* Sketch Selection */}
+                        <div className="p-4 border-b border-[var(--color-border)]">
+                            <h3 className="text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
+                                Sketch Type
+                            </h3>
+                            <div className="space-y-2">
+                                {sketches.map((sketch) => (
+                                    <button
+                                        key={sketch.id}
+                                        onClick={() => setSelectedSketch(sketch.id)}
+                                        className={`w-full p-3 rounded-xl text-left transition-all duration-200 flex items-center gap-3 ${
+                                            selectedSketch === sketch.id
+                                                ? 'bg-[var(--color-bg-elevated)] border-[var(--color-border-hover)]'
+                                                : 'hover:bg-[var(--color-bg-elevated)]'
+                                        } border border-[var(--color-border)]`}
+                                        style={{
+                                            borderColor: selectedSketch === sketch.id ? sketch.color : undefined,
+                                        }}
+                                    >
+                                        <div 
+                                            className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                            style={{ 
+                                                backgroundColor: `color-mix(in srgb, ${sketch.color} 15%, transparent)`,
+                                                color: sketch.color 
+                                            }}
                                         >
-                                            Start Sketching
-                                        </button>
-                                    </div>
+                                            {sketch.icon}
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-[var(--color-text-primary)]">{sketch.name}</div>
+                                            <div className="text-xs text-[var(--color-text-muted)]">{sketch.description}</div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Controls */}
+                        {currentSketch && (
+                            <div className="p-4 flex-1 overflow-y-auto">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
+                                        Parameters
+                                    </h3>
+                                    <button
+                                        onClick={resetSketch}
+                                        className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-elevated)] transition-colors"
+                                        title="Reset to defaults"
+                                    >
+                                        <ArrowPathIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-5">
+                                    {Object.entries(currentSketch.controls).map(([controlName, config]) => (
+                                        <div key={controlName}>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="text-sm text-[var(--color-text-secondary)]">
+                                                    {config.label}
+                                                </label>
+                                                <span className="text-sm font-mono text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)] px-2 py-0.5 rounded">
+                                                    {controls[selectedSketch][controlName].toFixed(2)}
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min={config.min}
+                                                max={config.max}
+                                                step={(config.max - config.min) / 100}
+                                                value={controls[selectedSketch][controlName]}
+                                                onChange={(e) => handleControlChange(controlName, parseFloat(e.target.value))}
+                                                className="w-full h-2 bg-[var(--color-bg-elevated)] rounded-lg appearance-none cursor-pointer slider"
+                                            />
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
 
-                        {/* Performance Stats */}
-                        {isPlaying && (
-                            <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-3 text-white text-sm">
-                                <div>Sketch: {currentSketch?.name}</div>
-                                <div>Status: Live</div>
-                            </div>
-                        )}
+                        {/* Action Buttons */}
+                        <div className="p-4 border-t border-[var(--color-border)]">
+                            <button
+                                onClick={saveScreenshot}
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] border border-[var(--color-border)] hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                            >
+                                <PhotoIcon className="w-5 h-5" />
+                                Save Screenshot
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                {/* Canvas Area */}
+                <div className="flex-1 relative">
+                    {/* Toggle Sidebar Button */}
+                    <button
+                        onClick={() => setShowControls(!showControls)}
+                        className={`absolute top-4 z-20 p-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-elevated)] transition-all ${
+                            showControls ? 'left-4' : 'left-4'
+                        }`}
+                    >
+                        {showControls ? (
+                            <ChevronLeftIcon className="w-5 h-5" />
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <Cog6ToothIcon className="w-5 h-5" />
+                                <ChevronRightIcon className="w-4 h-4" />
+                            </div>
+                        )}
+                    </button>
+
+                    {/* Play/Pause Button */}
+                    <button
+                        onClick={() => setIsPlaying(!isPlaying)}
+                        className={`absolute top-4 right-4 z-20 p-3 rounded-xl backdrop-blur-sm transition-all duration-300 border ${
+                            isPlaying
+                                ? 'bg-[var(--color-rose)]/10 text-[var(--color-rose)] border-[var(--color-rose)]/30 hover:bg-[var(--color-rose)]/20'
+                                : 'bg-[var(--color-accent)]/10 text-[var(--color-accent)] border-[var(--color-accent)]/30 hover:bg-[var(--color-accent)]/20'
+                        }`}
+                    >
+                        {isPlaying ? (
+                            <PauseIcon className="w-6 h-6" />
+                        ) : (
+                            <PlayIcon className="w-6 h-6" />
+                        )}
+                    </button>
+
+                    {/* Canvas */}
+                    <canvas
+                        ref={canvasRef}
+                        className="w-full h-full bg-[var(--color-bg-primary)] cursor-crosshair"
+                        style={{ touchAction: 'none' }}
+                    />
+
+                    {/* Start Overlay */}
+                    {!isStarted && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-bg-primary)]/80 backdrop-blur-sm">
+                            <div className="text-center max-w-md px-6">
+                                <div 
+                                    className="w-24 h-24 mx-auto mb-8 rounded-2xl flex items-center justify-center"
+                                    style={{ 
+                                        backgroundColor: `color-mix(in srgb, ${currentSketch?.color || 'var(--color-primary)'} 15%, transparent)` 
+                                    }}
+                                >
+                                    <PlayIcon 
+                                        className="w-12 h-12 ml-1" 
+                                        style={{ color: currentSketch?.color || 'var(--color-primary)' }}
+                                    />
+                                </div>
+                                <h2 className="text-3xl font-bold text-[var(--color-text-primary)] mb-4">
+                                    Live Sketch Studio
+                                </h2>
+                                <p className="text-[var(--color-text-secondary)] mb-8 leading-relaxed">
+                                    Create generative art in real-time. Adjust parameters in the sidebar 
+                                    to modify the artwork as it renders.
+                                </p>
+                                <button
+                                    onClick={() => { setIsPlaying(true); setIsStarted(true); }}
+                                    className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold transition-all duration-200 glow-amber"
+                                    style={{ 
+                                        backgroundColor: currentSketch?.color || 'var(--color-primary)',
+                                        color: 'var(--color-bg-primary)'
+                                    }}
+                                >
+                                    Start Creating
+                                    <PlayIcon className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Status indicator */}
+                    {isPlaying && (
+                        <div className="absolute bottom-4 left-4 flex items-center gap-3 px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)]/90 backdrop-blur-sm border border-[var(--color-border)]">
+                            <span 
+                                className="w-2 h-2 rounded-full animate-pulse"
+                                style={{ backgroundColor: currentSketch?.color || 'var(--color-primary)' }}
+                            />
+                            <span className="text-sm text-[var(--color-text-secondary)]">
+                                {currentSketch?.name}
+                            </span>
+                        </div>
+                    )}
+                </div>
             </div>
-        </>
+        </div>
     );
 };
 

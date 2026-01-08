@@ -5,13 +5,14 @@ export default function PauseButton({ isPlaying, setIsPlaying }: {
     setIsPlaying: (value: boolean) => void;
 }) {
     return (
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 z-10">
             <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className={`p-3 rounded-full backdrop-blur-sm transition-all duration-300 ${isPlaying
-                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                    : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                    }`}
+                className={`p-3 rounded-xl backdrop-blur-sm transition-all duration-300 border ${
+                    isPlaying
+                        ? 'bg-[var(--color-rose)]/10 text-[var(--color-rose)] border-[var(--color-rose)]/30 hover:bg-[var(--color-rose)]/20'
+                        : 'bg-[var(--color-accent)]/10 text-[var(--color-accent)] border-[var(--color-accent)]/30 hover:bg-[var(--color-accent)]/20'
+                }`}
             >
                 {isPlaying ? (
                     <PauseIcon className="w-6 h-6" />
@@ -20,5 +21,5 @@ export default function PauseButton({ isPlaying, setIsPlaying }: {
                 )}
             </button>
         </div>
-    )
+    );
 }

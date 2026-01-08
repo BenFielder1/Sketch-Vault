@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { ShareIcon } from '@heroicons/react/24/outline';
+import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 
 import { ISketch } from "@/types/sketch";
 
@@ -8,75 +8,89 @@ export default function SketchCard({ sketch, onView, delay }: {
     onView: () => void;
     delay: number;
 }) {
-    const typeColors = {
-        '3d': 'from-blue-500 to-purple-500',
-        'generative': 'from-green-500 to-teal-500',
-        'interactive': 'from-orange-500 to-pink-500',
-        '2d': 'from-red-500 to-purple-500'
+    const typeStyles: Record<string, { bg: string; text: string }> = {
+        '3d': { bg: 'bg-[var(--color-primary)]/15', text: 'text-[var(--color-primary)]' },
+        'generative': { bg: 'bg-[var(--color-accent)]/15', text: 'text-[var(--color-accent)]' },
+        'interactive': { bg: 'bg-[var(--color-rose)]/15', text: 'text-[var(--color-rose)]' },
+        '2d': { bg: 'bg-blue-500/15', text: 'text-blue-400' }
     };
 
     return (
         <div
-            className="group relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 transition-all duration-500 hover:scale-105"
+            className="animate-in group relative rounded-2xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] overflow-hidden hover:border-[var(--color-border-hover)] transition-all duration-300 card-lift"
             style={{ animationDelay: `${delay}ms` }}
         >
             {/* Thumbnail */}
-            <div className="relative aspect-square overflow-hidden">
-                <div className={`w-full h-full`}>
-                    <Image
-                        src={sketch.thumbnail}
-                        alt={sketch.title}
-                        fill
-                        style={{ objectFit: "cover" }}
-                    />
+            <div className="relative aspect-[4/3] overflow-hidden">
+                <Image
+                    src={sketch.thumbnail}
+                    alt={sketch.title}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                
+                {/* Overlay gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg-secondary)] via-transparent to-transparent opacity-60" />
+                
+                {/* Type badges */}
+                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                    {sketch.types.map((type) => {
+                        const style = typeStyles[type] || { bg: 'bg-gray-500/15', text: 'text-gray-400' };
+                        return (
+                            <span
+                                key={type}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${style.bg} ${style.text} backdrop-blur-sm`}
+                            >
+                                {type}
+                            </span>
+                        );
+                    })}
                 </div>
 
-                {/* Type Badge */}
-                <div className="absolute top-4 left-4">
-                    {sketch.types.map((type) => (
-                        <span
-                            key={type}
-                            className={`px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r ${typeColors[type as keyof typeof typeColors] || 'from-gray-500 to-gray-700'} mr-2`}
-                        >
-                            {type}
-                        </span>
-                    ))}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                    <button className="p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors">
-                        <ShareIcon className="w-4 h-4 text-white" />
-                    </button>
-                </div>
+                {/* Quick view button */}
+                <button 
+                    onClick={onView}
+                    className="absolute top-4 right-4 p-2 rounded-lg bg-[var(--color-bg-primary)]/80 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-primary)] backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200"
+                    aria-label="Quick view"
+                >
+                    <ArrowTopRightOnSquareIcon className="w-5 h-5" />
+                </button>
             </div>
 
             {/* Content */}
-            <div className="p-6">
-                <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-purple-300 transition-colors">
+            <div className="p-5">
+                <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-2 group-hover:text-[var(--color-primary)] transition-colors">
                     {sketch.title}
                 </h3>
-                <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+                <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed line-clamp-2 mb-4">
                     {sketch.description}
                 </p>
 
                 {/* Tags */}
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-1.5 mb-5">
                     {sketch.tags.slice(0, 3).map((tag) => (
-                        <span key={tag} className="px-2 py-1 bg-white/10 text-gray-300 text-xs rounded-md">
+                        <span 
+                            key={tag} 
+                            className="px-2 py-0.5 text-xs text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)] rounded"
+                        >
                             {tag}
                         </span>
                     ))}
+                    {sketch.tags.length > 3 && (
+                        <span className="px-2 py-0.5 text-xs text-[var(--color-text-muted)]">
+                            +{sketch.tags.length - 3}
+                        </span>
+                    )}
                 </div>
 
-                {/* View Button */}
+                {/* Action button */}
                 <button
                     onClick={onView}
-                    className="w-full mt-4 bg-gradient-to-r from-purple-500 to-cyan-500 text-white py-3 rounded-lg font-medium hover:from-purple-600 hover:to-cyan-600 hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
+                    className="w-full py-3 rounded-xl bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] font-medium border border-[var(--color-border)] hover:border-[var(--color-primary)]/50 hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all duration-200"
                 >
                     View Sketch
                 </button>
             </div>
         </div>
     );
-};
+}

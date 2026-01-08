@@ -22,6 +22,18 @@ interface PlanetData {
     rings?: boolean;
 }
 
+// Planet configuration - defined outside component to prevent recreation on each render
+const PLANETS_DATA: PlanetData[] = [
+    { name: 'Mercury', size: 0.38, color: '#8c7853', distance: 8, speed: 4.15, tilt: 0.1 },
+    { name: 'Venus', size: 0.95, color: '#ffc649', distance: 12, speed: 1.62, tilt: 177.4 },
+    { name: 'Earth', size: 1, color: '#6b93d6', distance: 16, speed: 1, tilt: 23.4 },
+    { name: 'Mars', size: 0.53, color: '#c1440e', distance: 22, speed: 0.53, tilt: 25.2 },
+    { name: 'Jupiter', size: 2.5, color: '#d8ca9d', distance: 35, speed: 0.08, tilt: 3.1 },
+    { name: 'Saturn', size: 2.1, color: '#fad5a5', distance: 50, speed: 0.03, tilt: 26.7, rings: true },
+    { name: 'Uranus', size: 1.6, color: '#4fd0e7', distance: 65, speed: 0.01, tilt: 97.8 },
+    { name: 'Neptune', size: 1.5, color: '#4b70dd', distance: 80, speed: 0.006, tilt: 28.3 }
+];
+
 const PlanetarySystemPage = () => {
     const mountRef = useRef<HTMLDivElement>(null);
     const sceneRef = useRef<THREE.Scene | null>(null);
@@ -46,24 +58,12 @@ const PlanetarySystemPage = () => {
 
     const pathname = usePathname();
 
-    // Planet configuration
-    const planetsData: PlanetData[] = [
-        { name: 'Mercury', size: 0.38, color: '#8c7853', distance: 8, speed: 4.15, tilt: 0.1 },
-        { name: 'Venus', size: 0.95, color: '#ffc649', distance: 12, speed: 1.62, tilt: 177.4 },
-        { name: 'Earth', size: 1, color: '#6b93d6', distance: 16, speed: 1, tilt: 23.4 },
-        { name: 'Mars', size: 0.53, color: '#c1440e', distance: 22, speed: 0.53, tilt: 25.2 },
-        { name: 'Jupiter', size: 2.5, color: '#d8ca9d', distance: 35, speed: 0.08, tilt: 3.1 },
-        { name: 'Saturn', size: 2.1, color: '#fad5a5', distance: 50, speed: 0.03, tilt: 26.7, rings: true },
-        { name: 'Uranus', size: 1.6, color: '#4fd0e7', distance: 65, speed: 0.01, tilt: 97.8 },
-        { name: 'Neptune', size: 1.5, color: '#4b70dd', distance: 80, speed: 0.006, tilt: 28.3 }
-    ];
-
     useEffect(() => {
         if (!mountRef.current) return;
 
         // Scene setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000011);
+        scene.background = new THREE.Color(0x0a0a0a);
         sceneRef.current = scene;
 
         // Camera setup
@@ -142,50 +142,66 @@ const PlanetarySystemPage = () => {
     }, []);
 
     useEffect(() => {
-        // let time = 0;
+        let localAnimationId: number | null = null;
+        
         const animate = () => {
-            if (isPlaying) {
+            // Only animate if scene is ready
+            if (!sceneRef.current || !cameraRef.current || !rendererRef.current) {
+                localAnimationId = requestAnimationFrame(animate);
+                return;
+            }
+
+            if (isPlaying && planetsRef.current.length > 0) {
                 timeRef.current += 0.01 * controls.orbitSpeed;
 
                 // Animate planets
                 planetsRef.current.forEach((planetGroup, index) => {
-                    const planet = planetsData[index];
-                    const angle = timeRef.current * planet.speed;
+                    if (index < PLANETS_DATA.length) {
+                        const planet = PLANETS_DATA[index];
+                        const angle = timeRef.current * planet.speed;
 
-                    planetGroup.position.x = Math.cos(angle) * planet.distance;
-                    planetGroup.position.z = Math.sin(angle) * planet.distance;
+                        planetGroup.position.x = Math.cos(angle) * planet.distance;
+                        planetGroup.position.z = Math.sin(angle) * planet.distance;
 
-                    // Rotate planet on its axis
-                    const planetMesh = planetGroup.children[0] as THREE.Mesh;
-                    if (planetMesh) {
-                        planetMesh.rotation.y += 0.01;
+                        // Rotate planet on its axis
+                        const planetMesh = planetGroup.children[0] as THREE.Mesh;
+                        if (planetMesh) {
+                            planetMesh.rotation.y += 0.01;
+                        }
                     }
                 });
 
                 if (controlsRef.current) {
+                    controlsRef.current.autoRotate = controls.cameraAutoRotate;
                     if (controls.cameraAutoRotate) {
-                        controlsRef.current.autoRotate = true;
                         controlsRef.current.autoRotateSpeed = 0.5;
-                    } else {
-                        controlsRef.current.autoRotate = false;
                     }
-
                     controlsRef.current.update();
                 }
+            } else if (controlsRef.current) {
+                // Still update orbit controls even when paused
+                controlsRef.current.update();
             }
 
-
-            if (sceneRef.current && cameraRef.current && rendererRef.current) {
-                rendererRef.current.render(sceneRef.current, cameraRef.current);
-            }
-            animationIdRef.current = requestAnimationFrame(animate);
+            rendererRef.current.render(sceneRef.current, cameraRef.current);
+            localAnimationId = requestAnimationFrame(animate);
         };
 
+        // Cancel any existing animation before starting a new one
         if (animationIdRef.current !== null) {
             cancelAnimationFrame(animationIdRef.current);
+            animationIdRef.current = null;
         }
+        
         animate();
-    }, [controls.cameraAutoRotate, controls.orbitSpeed, controls.timeSpeed, isPlaying]);
+        
+        // Cleanup function
+        return () => {
+            if (localAnimationId !== null) {
+                cancelAnimationFrame(localAnimationId);
+            }
+        };
+    }, [controls.cameraAutoRotate, controls.orbitSpeed, controls.timeSpeed, isPlaying, PLANETS_DATA]);
 
     // Update controls effect
     useEffect(() => {
@@ -199,7 +215,7 @@ const PlanetarySystemPage = () => {
             planetsRef.current.forEach((planetGroup, index) => {
                 const planetMesh = planetGroup.children[0] as THREE.Mesh;
                 if (planetMesh) {
-                    const originalScale = planetsData[index].size;
+                    const originalScale = PLANETS_DATA[index].size;
                     planetMesh.scale.setScalar(originalScale * controls.planetScale);
                 }
             });
@@ -242,7 +258,7 @@ const PlanetarySystemPage = () => {
     const createSun = (scene: THREE.Scene) => {
         const sunGeometry = new THREE.SphereGeometry(3, 32, 32);
         const sunMaterial = new THREE.MeshBasicMaterial({
-            color: 0xffff00,
+            color: 0xF59E0B, // Using our primary amber color
         });
         const sun = new THREE.Mesh(sunGeometry, sunMaterial);
         scene.add(sun);
@@ -252,7 +268,7 @@ const PlanetarySystemPage = () => {
     const createPlanets = (scene: THREE.Scene) => {
         planetsRef.current = [];
 
-        planetsData.forEach((planet) => {
+        PLANETS_DATA.forEach((planet) => {
             const planetGroup = new THREE.Group();
 
             // Planet geometry and material
@@ -291,7 +307,7 @@ const PlanetarySystemPage = () => {
     const createOrbitLines = (scene: THREE.Scene) => {
         orbitLinesRef.current = [];
 
-        planetsData.forEach(planet => {
+        PLANETS_DATA.forEach(planet => {
             const points = [];
             for (let i = 0; i <= 64; i++) {
                 const angle = (i / 64) * Math.PI * 2;
@@ -304,7 +320,7 @@ const PlanetarySystemPage = () => {
 
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             const material = new THREE.LineBasicMaterial({
-                color: 0x555555,
+                color: 0x333333,
                 transparent: true,
                 opacity: 0.3
             });
@@ -337,7 +353,7 @@ const PlanetarySystemPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
+        <div className="min-h-screen bg-[var(--color-bg-primary)] flex flex-col">
             <SketchHeader title="Planetary System" />
 
             <div className="flex h-full flex-1">
@@ -356,8 +372,8 @@ const PlanetarySystemPage = () => {
 
                     <InfoPanel
                         title="Solar System"
-                        text={`Interactive 3D model with ${planetsData.length} planets orbiting the sun.`}
-                        controls="Use mouse to orbit, zoom, and pan the camera. Adjust controls in the sidebar."
+                        text={`Interactive 3D model with ${PLANETS_DATA.length} planets orbiting the sun.`}
+                        controls="Drag to orbit • Scroll to zoom • Right-click to pan"
                     />
                 </div>
             </div>
