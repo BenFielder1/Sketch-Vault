@@ -1,34 +1,33 @@
 {
   "name": "sketch-vault",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@types/three": "^0.182.0",
-    "next": "16.1.1",
-    "p5": "^2.1.2",
+    "next": "16.4.0",
+    "p5": "^2.3.4",
     "pathfinding": "^0.4.18",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-p5": "^1.4.1",
-    "three": "^0.182.0"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "three": "^0.186.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^25",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^25.9.9",
     "@types/pathfinding": "^0.1.0",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.1",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.4.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.9.3"
   }
 }
