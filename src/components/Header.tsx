@@ -1,153 +1,81 @@
 "use client";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
+import { Bars2Icon, XMarkIcon } from "@heroicons/react/24/outline";
+
+import { sketches } from "@/data/sketches";
+import ThemeToggle from "./ThemeToggle";
+import Wordmark from "./Wordmark";
+
+const navLinks = [
+    { href: "/gallery", label: "Index" },
+    { href: "/live-sketch", label: "Studio" },
+    { href: "/#about", label: "About" },
+];
 
 export default function Header() {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isScrolled, setIsScrolled] = useState(false);
     const pathname = usePathname();
-
-    // Track scroll position
-    useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 20);
-        };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    // Close mobile menu when route changes
-    useEffect(() => {
-        setIsMenuOpen(false);
-    }, [pathname]);
-
-    const navLinks = [
-        { href: "/", label: "Home" },
-        { href: "/gallery", label: "Gallery" },
-        { href: "/live-sketch", label: "Live Sketch" },
-    ];
+    const [openFor, setOpenFor] = useState<string | null>(null);
+    // The menu belongs to the page it was opened on, so navigating closes it
+    const isMenuOpen = openFor === pathname;
 
     return (
-        <header 
-            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-                isScrolled 
-                    ? 'bg-[var(--color-bg-primary)]/90 backdrop-blur-md border-b border-[var(--color-border)]' 
-                    : 'bg-transparent'
-            }`}
-        >
-            <div className="max-w-7xl mx-auto px-6 py-4">
-                <div className="flex justify-between items-center">
-                    {/* Logo */}
-                    <Link href="/" className="flex items-center gap-3 group">
-                        <div className="relative w-10 h-10 flex items-center justify-center">
-                            {/* Logo mark */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] rounded-xl opacity-90 group-hover:opacity-100 transition-opacity" />
-                            <svg 
-                                className="relative w-5 h-5 text-[var(--color-bg-primary)]" 
-                                viewBox="0 0 24 24" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                strokeWidth="2.5"
-                                strokeLinecap="round" 
-                                strokeLinejoin="round"
-                            >
-                                <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                                <polyline points="2 17 12 22 22 17" />
-                                <polyline points="2 12 12 17 22 12" />
-                            </svg>
-                        </div>
-                        <span className="text-[var(--color-text-primary)] font-bold text-xl tracking-tight">
-                            Sketch<span className="text-[var(--color-primary)]">Vault</span>
-                        </span>
-                    </Link>
+        <header className="sticky top-0 z-40 border-b border-rule bg-paper/85 backdrop-blur-md">
+            <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-6 px-4 sm:px-6 lg:px-10">
+                <Wordmark />
 
-                    {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center gap-1">
-                        {navLinks.map((link) => (
-                            <Link 
+                <span className="label hidden md:inline">
+                    {String(sketches.length).padStart(2, "0")} works on file
+                </span>
+
+                <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label="Main">
+                    {navLinks.map(link => {
+                        const active = pathname === link.href;
+                        return (
+                            <Link
                                 key={link.href}
-                                href={link.href} 
-                                className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                    pathname === link.href 
-                                        ? 'text-[var(--color-primary)]' 
-                                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-                                }`}
+                                href={link.href}
+                                aria-current={active ? "page" : undefined}
+                                className={`relative px-3 py-1.5 text-sm transition-colors ${active ? "text-ink" : "text-ink-soft hover:text-ink"}`}
                             >
                                 {link.label}
-                                {pathname === link.href && (
-                                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--color-primary)]" />
-                                )}
+                                {active && <span className="absolute inset-x-3 -bottom-[15px] h-[2px] bg-signal" />}
                             </Link>
-                        ))}
-                        
-                        {/* CTA Button */}
-                        <Link 
-                            href="/gallery"
-                            className="ml-4 px-5 py-2 bg-[var(--color-primary)] text-[var(--color-bg-primary)] rounded-lg text-sm font-semibold hover:bg-[var(--color-primary-light)] transition-colors duration-200"
-                        >
-                            Explore Art
-                        </Link>
-                    </nav>
+                        );
+                    })}
+                    <span className="mx-2 h-4 w-px bg-rule" />
+                    <ThemeToggle />
+                </nav>
 
-                    {/* Mobile menu button */}
+                <div className="ml-auto flex items-center md:hidden">
+                    <ThemeToggle />
                     <button
-                        className="md:hidden relative w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[var(--color-bg-elevated)] transition-colors"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        aria-label="Toggle menu"
+                        className="inline-flex h-8 w-8 items-center justify-center text-ink"
+                        onClick={() => setOpenFor(isMenuOpen ? null : pathname)}
+                        aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+                        aria-expanded={isMenuOpen}
                     >
-                        <div className="flex flex-col gap-1.5 w-5">
-                            <span 
-                                className={`block h-0.5 bg-[var(--color-text-primary)] rounded-full transition-all duration-300 ${
-                                    isMenuOpen ? 'rotate-45 translate-y-2' : ''
-                                }`} 
-                            />
-                            <span 
-                                className={`block h-0.5 bg-[var(--color-text-primary)] rounded-full transition-all duration-300 ${
-                                    isMenuOpen ? 'opacity-0' : ''
-                                }`} 
-                            />
-                            <span 
-                                className={`block h-0.5 bg-[var(--color-text-primary)] rounded-full transition-all duration-300 ${
-                                    isMenuOpen ? '-rotate-45 -translate-y-2' : ''
-                                }`} 
-                            />
-                        </div>
+                        {isMenuOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars2Icon className="h-5 w-5" />}
                     </button>
                 </div>
             </div>
 
-            {/* Mobile Navigation */}
-            <div 
-                className={`md:hidden absolute top-full left-0 right-0 bg-[var(--color-bg-primary)]/95 backdrop-blur-md border-b border-[var(--color-border)] transition-all duration-300 ${
-                    isMenuOpen 
-                        ? 'opacity-100 translate-y-0' 
-                        : 'opacity-0 -translate-y-4 pointer-events-none'
-                }`}
-            >
-                <nav className="px-6 py-4 flex flex-col gap-1">
-                    {navLinks.map((link, index) => (
-                        <Link 
+            {isMenuOpen && (
+                <nav className="border-t border-rule bg-paper px-4 pb-6 md:hidden" aria-label="Main">
+                    {navLinks.map((link, i) => (
+                        <Link
                             key={link.href}
-                            href={link.href} 
-                            className={`px-4 py-3 rounded-lg text-base font-medium transition-all duration-200 ${
-                                pathname === link.href 
-                                    ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/10' 
-                                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-elevated)]'
-                            }`}
-                            style={{ animationDelay: `${index * 50}ms` }}
+                            href={link.href}
+                            onClick={() => setOpenFor(null)}
+                            className="flex items-baseline gap-4 border-b border-rule py-4"
                         >
-                            {link.label}
+                            <span className="label w-6">{String(i + 1).padStart(2, "0")}</span>
+                            <span className="font-serif text-3xl">{link.label}</span>
                         </Link>
                     ))}
-                    <Link 
-                        href="/gallery"
-                        className="mt-2 px-4 py-3 bg-[var(--color-primary)] text-[var(--color-bg-primary)] rounded-lg text-base font-semibold text-center hover:bg-[var(--color-primary-light)] transition-colors duration-200"
-                    >
-                        Explore Art
-                    </Link>
                 </nav>
-            </div>
+            )}
         </header>
     );
 }
